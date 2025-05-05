@@ -206,20 +206,24 @@
     }
 
     function updateStats() {
-        const stats = config.stats;
-        const visible = state.table.rows({ search: 'applied' }).data().toArray();
-        const total = state.data.length;
+    const total = state.data.length;
+    const visible = state.table.rows({ search: 'applied' }).indexes().toArray().length;
 
-        stats.forEach(stat => {
-            const el = document.getElementById(`${stat.key}-records`);
-            if (!el) return;
-            if (stat.type === 'count' && stat.match) {
-                el.textContent = visible.filter(row => String(row[stat.key]) === stat.match).length;
-            } else {
-                el.textContent = stat.key === 'total' ? total : visible.length;
-            }
-        });
-    }
+    const container = document.getElementById('statistics');
+    container.innerHTML = `
+        <div class="row text-center">
+            <div class="col">
+                <h3>${visible}</h3>
+                <p>Visible Records</p>
+            </div>
+            <div class="col">
+                <h3>${total}</h3>
+                <p>Total Records</p>
+            </div>
+        </div>
+    `;
+}
+
 
     function exportCSV() {
         const rows = state.table.rows({ search: 'applied' }).data().toArray();

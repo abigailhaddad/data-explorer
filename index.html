@@ -22,27 +22,21 @@
     </nav>
 
     <div class="container-fluid py-4">
-        <!-- Stats -->
+        <!-- Stats & Filters -->
         <div class="row mb-4">
+            <!-- Updated Stats Card -->
             <div class="col-md-6">
                 <div class="card">
                     <div class="card-header">
                         <h5 class="m-0">Statistics</h5>
                     </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-6">
-                                <h3 id="total-records">0</h3>
-                                <p>Total Records</p>
-                            </div>
-                            <div class="col-6">
-                                <h3 id="active-records">0</h3>
-                                <p>Active Employees</p>
-                            </div>
-                        </div>
+                    <div class="card-body" id="statistics">
+                        <!-- Populated dynamically -->
                     </div>
                 </div>
             </div>
+
+            <!-- Filters -->
             <div class="col-md-6">
                 <div class="card">
                     <div class="card-header d-flex justify-content-between">
@@ -92,7 +86,7 @@
     <script src="https://cdn.datatables.net/colreorder/1.6.2/js/dataTables.colReorder.min.js"></script>
 
     <!-- Your App -->
-     <script src="config.js"></script>
-     <script src="app.js"></script>
+    <script src="config.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
