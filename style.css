@@ -1,0 +1,112 @@
+/* Unified theme with softer colors */
+:root {
+    --bs-primary: #6366f1;           /* Indigo */
+    --bs-primary-rgb: 99, 102, 241;
+
+    --accent: #14b8a6;               /* Teal accent */
+    --gray-bg: #f8fafc;
+    --gray-light: #e2e8f0;
+    --gray-dark: #334155;
+    --success: #10b981;
+    --warning: #f59e0b;
+
+    --bs-body-bg: var(--gray-bg);
+    --bs-body-color: #1e293b;
+    --bs-border-radius: 0.5rem;
+}
+
+/* General */
+body {
+    background-color: var(--bs-body-bg);
+    color: var(--bs-body-color);
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Card styling */
+.card {
+    border-radius: 0.5rem;
+    box-shadow: 0 0.75rem 1.25rem rgba(0, 0, 0, 0.05);
+    border: none;
+}
+
+/* Buttons */
+.btn-outline-primary {
+    border-color: var(--bs-primary);
+    color: var(--bs-primary);
+    transition: all 0.2s ease;
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--bs-primary);
+    color: #fff;
+}
+
+/* Filter tags */
+.filter-tag {
+    background-color: var(--gray-light);
+    border-radius: 20px;
+    padding: 5px 10px;
+    margin: 5px 5px 5px 0;
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.85rem;
+    color: var(--gray-dark);
+}
+
+.filter-tag .close,
+.filter-tag .remove-tag {
+    margin-left: 8px;
+    cursor: pointer;
+    color: var(--gray-dark);
+    font-weight: bold;
+}
+
+/* Table tweaks */
+table.dataTable th,
+table.dataTable td {
+    vertical-align: middle;
+    border-color: #e5e7eb;
+}
+
+table.dataTable thead th {
+    background-color: #f1f5f9;
+    border-bottom: 2px solid #d1d5db;
+}
+
+/* Status badges (theme-cohesive!) */
+.badge {
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.4em 0.6em;
+    border-radius: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.badge.bg-success {
+    background-color: var(--success) !important;
+    color: white;
+}
+
+.badge.bg-warning {
+    background-color: var(--warning) !important;
+    color: white;
+}
+
+/* Modal tag container */
+#text-filter-tags {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+/* Responsive */
+@media (max-width: 576px) {
+    .filter-tag {
+        font-size: 0.75rem;
+        padding: 4px 8px;
+    }
+
+    .card-header h5 {
+        font-size: 1rem;
+    }
+}

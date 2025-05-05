@@ -1,0 +1,45 @@
+[
+  {
+    "id": 1,
+    "name": "John Smith",
+    "department": "Engineering",
+    "title": "Software Engineer",
+    "salary": 85000,
+    "location": "New York",
+    "joined": "2020-03-15",
+    "status": "Active",
+    "notes": "Frontend specialist with React experience. Has been working on the customer dashboard project."
+  },
+  {
+    "id": 2,
+    "name": "Emily Johnson",
+    "department": "Marketing",
+    "title": "Marketing Manager",
+    "salary": 92000,
+    "location": "Chicago",
+    "joined": "2018-06-22",
+    "status": "Active",
+    "notes": "Leads the digital marketing team. Responsible for the Q1 campaign that increased leads by 30%."
+  },
+  {
+    "id": 3,
+    "name": "Michael Wong",
+    "department": "Engineering",
+    "title": "Senior Developer",
+    "salary": 110000,
+    "location": "San Francisco",
+    "joined": "2017-11-10",
+    "status": "Active",
+    "notes": "Full-stack developer with expertise in scalable architecture. Currently mentoring junior developers."
+  },
+  {
+    "id": 4,
+    "name": "Sarah Davis",
+    "department": "HR",
+    "title": "HR Specialist",
+    "salary": 75000,
+    "location": "Boston",
+    "joined": "2019-09-15",
+    "status": "On Leave",
+    "notes": "Manages employee onboarding and benefits administration. Currently on maternity leave until June."
+  }]
