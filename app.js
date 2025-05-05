@@ -206,22 +206,34 @@
     }
 
     function updateStats() {
-    const total = state.data.length;
-    const visible = state.table.rows({ search: 'applied' }).indexes().toArray().length;
+    const stats = config.stats;
+    const data = state.data;
 
     const container = document.getElementById('statistics');
-    container.innerHTML = `
-        <div class="row text-center">
+    container.innerHTML = '<div class="row text-center"></div>';
+    const row = container.querySelector('.row');
+
+    stats.forEach(stat => {
+        let count = 0;
+
+        if (stat.type === 'count') {
+            if (stat.key === 'total') {
+                count = data.length;
+            } else if (stat.match !== undefined) {
+                count = data.filter(row => String(row[stat.key]) === stat.match).length;
+            } else {
+                count = data.filter(row => row[stat.key] !== undefined).length;
+            }
+        }
+
+        const statHTML = `
             <div class="col">
-                <h3>${visible}</h3>
-                <p>Visible Records</p>
+                <h3>${count}</h3>
+                <p>${stat.label}</p>
             </div>
-            <div class="col">
-                <h3>${total}</h3>
-                <p>Total Records</p>
-            </div>
-        </div>
-    `;
+        `;
+        row.innerHTML += statHTML;
+    });
 }
 
 
