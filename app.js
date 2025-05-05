@@ -1,16 +1,15 @@
 (function () {
+    const config = window.DATASET_CONFIG;
     const state = {
         data: [],
         table: null,
-        filters: {},
+        filters: {}
     };
 
-    document.addEventListener('DOMContentLoaded', initialize);
-
-    function initialize() {
+    document.addEventListener('DOMContentLoaded', () => {
         setupEventListeners();
         loadData();
-    }
+    });
 
     function loadData() {
         fetch('data.json')
@@ -31,35 +30,24 @@
     }
 
     function initializeTable() {
+        const columns = config.fields.map(field => ({
+            data: field.key,
+            title: field.title,
+            visible: field.visible !== false,
+            render: (d, type, row) => {
+                if (field.format === 'currency') return `$${Number(d).toLocaleString()}`;
+                if (field.format === 'date') return new Date(d).toLocaleDateString();
+                if (field.key === 'status') {
+                    const cls = d === 'Active' ? 'bg-success' : 'bg-warning';
+                    return `<span class="badge ${cls}">${d}</span>`;
+                }
+                return d;
+            }
+        }));
+
         state.table = $('#data-table').DataTable({
             data: state.data,
-            columns: [
-                { data: 'id', title: 'ID' },
-                { data: 'name', title: 'Name' },
-                { data: 'department', title: 'Department' },
-                { data: 'title', title: 'Title' },
-                {
-                    data: 'salary',
-                    title: 'Salary',
-                    render: d => `$${d.toLocaleString()}`
-                },
-                { data: 'location', title: 'Location' },
-                {
-                    data: 'joined',
-                    title: 'Join Date',
-                    render: d => new Date(d).toLocaleDateString()
-                },
-                {
-                    data: 'status',
-                    title: 'Status',
-                    render: d => `<span class="badge ${d === 'Active' ? 'bg-success' : 'bg-warning'}">${d}</span>`
-                },
-                {
-                    data: 'notes',
-                    title: 'Notes',
-                    render: d => `<div class="cell-expandable">${d}</div>`
-                }
-            ],
+            columns,
             responsive: true,
             dom: '<"dt-buttons"B><"d-flex justify-content-between"lf>rtip',
             pageLength: 50,
@@ -75,21 +63,15 @@
     }
 
     function createFilterButtons() {
-        const fields = [
-            { key: 'name', type: 'text' },
-            { key: 'title', type: 'text' },
-            { key: 'department', type: 'select' },
-            { key: 'location', type: 'select' },
-            { key: 'status', type: 'select' }
-        ];
-
         const container = document.getElementById('filter-buttons');
         container.innerHTML = '';
 
-        fields.forEach(field => {
+        config.fields.forEach(field => {
+            if (!field.filter) return;
+
             const btn = document.createElement('button');
             btn.className = 'btn btn-outline-primary me-2 mb-2';
-            btn.textContent = field.key.charAt(0).toUpperCase() + field.key.slice(1);
+            btn.textContent = field.title;
             btn.addEventListener('click', () => showFilterModal(field));
             container.appendChild(btn);
         });
@@ -98,10 +80,9 @@
     function showFilterModal(field) {
         const modal = document.getElementById('filter-modal');
         const existing = state.filters[field.key] || [];
-
         let bodyContent = '';
 
-        if (field.type === 'select') {
+        if (field.filter === 'select') {
             const values = Array.from(new Set(state.data.map(row => row[field.key]))).filter(Boolean);
             bodyContent = values.map(v => `
                 <label class="form-check">
@@ -120,7 +101,7 @@
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">Filter by ${field.key}</h5>
+                        <h5 class="modal-title">Filter by ${field.title}</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">${bodyContent}</div>
@@ -135,10 +116,9 @@
         const bsModal = new bootstrap.Modal(modal);
         bsModal.show();
 
-        if (field.type === 'text') {
+        if (field.filter === 'text') {
             const input = modal.querySelector('#free-text-filter');
             const tagContainer = modal.querySelector('#text-filter-tags');
-
             renderTextTags(field.key);
 
             input.addEventListener('keydown', e => {
@@ -169,7 +149,7 @@
         }
 
         modal.querySelector('.apply-filter').addEventListener('click', () => {
-            if (field.type === 'select') {
+            if (field.filter === 'select') {
                 const checked = modal.querySelectorAll('input[type=checkbox]:checked');
                 state.filters[field.key] = Array.from(checked).map(cb => cb.value);
             }
@@ -203,10 +183,11 @@
         container.innerHTML = '';
 
         Object.entries(state.filters).forEach(([key, values]) => {
+            const title = config.fields.find(f => f.key === key)?.title || key;
             values.forEach(val => {
                 const tag = document.createElement('div');
                 tag.className = 'filter-tag';
-                tag.innerHTML = `${key}: ${val} <span class="close" data-key="${key}" data-val="${val}">&times;</span>`;
+                tag.innerHTML = `${title}: ${val} <span class="close" data-key="${key}" data-val="${val}">&times;</span>`;
                 tag.querySelector('.close').addEventListener('click', () => {
                     state.filters[key] = state.filters[key].filter(v => v !== val);
                     if (state.filters[key].length === 0) delete state.filters[key];
@@ -225,22 +206,29 @@
     }
 
     function updateStats() {
-        const total = state.data.length;
+        const stats = config.stats;
         const visible = state.table.rows({ search: 'applied' }).data().toArray();
-        const active = visible.filter(r => r.status === 'Active').length;
-        document.getElementById('total-records').textContent = total;
-        document.getElementById('active-records').textContent = active;
+        const total = state.data.length;
+
+        stats.forEach(stat => {
+            const el = document.getElementById(`${stat.key}-records`);
+            if (!el) return;
+            if (stat.type === 'count' && stat.match) {
+                el.textContent = visible.filter(row => String(row[stat.key]) === stat.match).length;
+            } else {
+                el.textContent = stat.key === 'total' ? total : visible.length;
+            }
+        });
     }
 
     function exportCSV() {
         const rows = state.table.rows({ search: 'applied' }).data().toArray();
-        const headers = state.table.columns().header().toArray().map(h => h.textContent.trim());
+        const headers = config.fields.map(f => f.title);
         let csv = headers.join(',') + '\n';
 
         rows.forEach(row => {
-            const line = headers.map(h => {
-                let key = h.toLowerCase();
-                let val = row[key] ?? '';
+            const line = config.fields.map(f => {
+                let val = row[f.key] ?? '';
                 return typeof val === 'string' && val.includes(',') ? `"${val}"` : val;
             });
             csv += line.join(',') + '\n';
