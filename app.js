@@ -248,6 +248,7 @@
         rows.forEach(row => {
             const line = config.fields.map(f => {
                 let val = row[f.key] ?? '';
+                val = val.replace(/[^a-z0-9\-\,]/ig, '');
                 return typeof val === 'string' && val.includes(',') ? `"${val}"` : val;
             });
             csv += line.join(',') + '\n';
