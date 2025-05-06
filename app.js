@@ -46,20 +46,23 @@
         }));
 
         state.table = $('#data-table').DataTable({
-            data: state.data,
-            columns,
-            responsive: true,
-            dom: '<"dt-buttons"B><"d-flex justify-content-between"lf>rtip',
-            pageLength: 50,
-            buttons: [
-                {
-                    extend: 'colvis',
-                    text: '<i class="bi bi-eye"></i> Columns',
-                    className: 'btn btn-sm btn-primary text-white',
-                    columns: ':not(.noVis)'
-                }
-            ]
-        });
+    data: state.data,
+    columns,
+    responsive: true,
+    searchHighlight: true,      // <-- Enables search highlighting
+    fixedHeader: true,          // <-- Enables sticky header
+    dom: '<"dt-buttons"B><"d-flex justify-content-between"lf>rtip',
+    pageLength: 50,
+    buttons: [
+        {
+            extend: 'colvis',
+            text: '<i class="bi bi-eye"></i> Columns',
+            className: 'btn btn-sm btn-primary text-white',
+            columns: ':not(.noVis)'
+        }
+    ]
+});
+
     }
 
     function createFilterButtons() {
