@@ -1,4 +1,3 @@
-Here’s your updated README — cleaned up, slightly polished, and with all mention of `requirements.txt` removed:
 # Data Explorer
 
 **Data Explorer** is a lightweight, browser-based interface for exploring structured data. There’s no backend, no build process, and no dependencies — just HTML, CSS, and JavaScript. Drop in your dataset and a matching configuration, and it renders a fully interactive table with filters, search, statistics, and CSV export.
