@@ -8,8 +8,17 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         setupEventListeners();
+        setPageTitle();
         loadData();
     });
+
+    function setPageTitle() {
+        // Set the document title using the title from config
+        const title = config.title || config.datasetName || 'Data Explorer';
+        document.title = title;
+        document.getElementById('app-title').textContent = title;
+        document.getElementById('navbar-title').textContent = title;
+    }
 
     function loadData() {
         fetch('data.json')
@@ -46,23 +55,22 @@
         }));
 
         state.table = $('#data-table').DataTable({
-    data: state.data,
-    columns,
-    responsive: true,
-    searchHighlight: true,      // <-- Enables search highlighting
-    fixedHeader: true,          // <-- Enables sticky header
-    dom: '<"dt-buttons"B><"d-flex justify-content-between"lf>rtip',
-    pageLength: 50,
-    buttons: [
-        {
-            extend: 'colvis',
-            text: '<i class="bi bi-eye"></i> Columns',
-            className: 'btn btn-sm btn-primary text-white',
-            columns: ':not(.noVis)'
-        }
-    ]
-});
-
+            data: state.data,
+            columns,
+            responsive: true,
+            searchHighlight: true,      // <-- Enables search highlighting
+            fixedHeader: true,          // <-- Enables sticky header
+            dom: '<"dt-buttons"B><"d-flex justify-content-between"lf>rtip',
+            pageLength: 50,
+            buttons: [
+                {
+                    extend: 'colvis',
+                    text: '<i class="bi bi-eye"></i> Columns',
+                    className: 'btn btn-sm btn-primary text-white',
+                    columns: ':not(.noVis)'
+                }
+            ]
+        });
     }
 
     function createFilterButtons() {
@@ -209,36 +217,35 @@
     }
 
     function updateStats() {
-    const stats = config.stats;
-    const data = state.data;
+        const stats = config.stats;
+        const data = state.data;
 
-    const container = document.getElementById('statistics');
-    container.innerHTML = '<div class="row text-center"></div>';
-    const row = container.querySelector('.row');
+        const container = document.getElementById('statistics');
+        container.innerHTML = '<div class="row text-center"></div>';
+        const row = container.querySelector('.row');
 
-    stats.forEach(stat => {
-        let count = 0;
+        stats.forEach(stat => {
+            let count = 0;
 
-        if (stat.type === 'count') {
-            if (stat.key === 'total') {
-                count = data.length;
-            } else if (stat.match !== undefined) {
-                count = data.filter(row => String(row[stat.key]) === stat.match).length;
-            } else {
-                count = data.filter(row => row[stat.key] !== undefined).length;
+            if (stat.type === 'count') {
+                if (stat.key === 'total') {
+                    count = data.length;
+                } else if (stat.match !== undefined) {
+                    count = data.filter(row => String(row[stat.key]) === stat.match).length;
+                } else {
+                    count = data.filter(row => row[stat.key] !== undefined).length;
+                }
             }
-        }
 
-        const statHTML = `
-            <div class="col">
-                <h3>${count}</h3>
-                <p>${stat.label}</p>
-            </div>
-        `;
-        row.innerHTML += statHTML;
-    });
-}
-
+            const statHTML = `
+                <div class="col">
+                    <h3>${count}</h3>
+                    <p>${stat.label}</p>
+                </div>
+            `;
+            row.innerHTML += statHTML;
+        });
+    }
 
     function exportCSV() {
         const rows = state.table.rows({ search: 'applied' }).data().toArray();
