@@ -18,23 +18,50 @@
         document.title = title;
         document.getElementById('app-title').textContent = title;
         document.getElementById('navbar-title').textContent = title;
+        
+        // Set optional subtitle if present in config
+        if (config.subtitle) {
+            const subtitleEl = document.getElementById('navbar-subtitle');
+            subtitleEl.textContent = config.subtitle;
+            subtitleEl.classList.remove('d-none');
+        }
     }
 
     function loadData() {
+        // Add loading state
+        document.querySelector('#statistics').classList.add('loading');
+        
         fetch('data.json')
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error(`HTTP error! Status: ${res.status}`);
+                }
+                return res.json();
+            })
             .then(data => {
                 state.data = data;
+                
+                // Remove loading placeholders
+                document.querySelector('#statistics').classList.remove('loading');
+                document.querySelector('#filter-buttons').innerHTML = '';
+                
                 initializeTable();
                 createFilterButtons();
                 updateStats();
+                
+                // Hide "No filters" message if any filters are active
+                updateNoFiltersMessage();
             })
             .catch(err => {
                 document.querySelector('.card-body').innerHTML += `
-                    <div style="color:red;background:#fee;padding:15px;margin-top:15px;">
+                    <div class="alert alert-danger mt-3">
                         <strong>Error Loading Data:</strong><br>${err.message}
                     </div>
                 `;
+                
+                // Remove loading indicators
+                document.querySelector('#statistics').classList.remove('loading');
+                document.querySelector('#filter-buttons').innerHTML = '';
             });
     }
 
@@ -49,14 +76,21 @@
                     return data;
                 }
                 
+                // Handle null/undefined values
+                if (data === null || data === undefined) {
+                    return '<span class="text-muted fst-italic">—</span>';
+                }
+                
                 // Handle currency formatting
                 if (field.format === 'currency') {
-                    return `$${Number(data).toLocaleString()}`;
+                    return `<span class="fw-medium">$${Number(data).toLocaleString()}</span>`;
                 }
                 
                 // Handle date formatting
                 if (field.format === 'date') {
-                    return new Date(data).toLocaleDateString();
+                    const date = new Date(data);
+                    if (isNaN(date)) return data;
+                    return date.toLocaleDateString();
                 }
                 
                 // Handle badge formatting if badges are configured
@@ -82,18 +116,32 @@
             }
         }));
 
+        // Destroy existing table if it exists
+        if (state.table) {
+            state.table.destroy();
+            $('#data-table').empty();
+        }
+
         state.table = $('#data-table').DataTable({
             data: state.data,
             columns,
             responsive: true,
-            searchHighlight: true,      // <-- Enables search highlighting
-            fixedHeader: true,          // <-- Enables sticky header
-            dom: '<"dt-buttons"B><"d-flex justify-content-between"l>tip', // Removed 'f' to hide the search box
-            pageLength: 50,
+            searchHighlight: true,
+            fixedHeader: true,
+            dom: '<"dt-buttons"B><"d-flex justify-content-between align-items-center mb-3"l>tip',
+            pageLength: 25,
+            lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+            language: {
+                lengthMenu: "Show _MENU_ entries",
+                info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                infoFiltered: "(filtered from _MAX_ total entries)",
+                zeroRecords: "No matching records found",
+                emptyTable: "No data available"
+            },
             buttons: [
                 {
                     extend: 'colvis',
-                    text: '<i class="bi bi-eye"></i> Columns',
+                    text: 'Show/Hide Columns',
                     className: 'btn btn-sm btn-primary text-white',
                     columns: ':not(.noVis)'
                 }
@@ -109,7 +157,7 @@
             if (!field.filter) return;
 
             const btn = document.createElement('button');
-            btn.className = 'btn btn-outline-primary me-2 mb-2';
+            btn.className = 'btn btn-sm btn-outline-primary me-2 mb-2';
             btn.textContent = field.title;
             btn.addEventListener('click', () => showFilterModal(field));
             container.appendChild(btn);
@@ -122,16 +170,42 @@
         let bodyContent = '';
 
         if (field.filter === 'select') {
-            const values = Array.from(new Set(state.data.map(row => row[field.key]))).filter(Boolean);
-            bodyContent = values.map(v => `
-                <label class="form-check">
-                    <input class="form-check-input" type="checkbox" value="${v}" ${existing.includes(v) ? 'checked' : ''}>
-                    ${v}
-                </label>
-            `).join('');
+            // Get unique values and sort them
+            const values = Array.from(new Set(state.data.map(row => row[field.key]))).filter(Boolean).sort();
+            
+            bodyContent = `
+                <div class="mb-3">
+                    <input type="text" class="form-control form-control-sm" id="select-filter-search" 
+                           placeholder="Search options...">
+                </div>
+                <div class="select-options-container">
+                    ${values.map(v => `
+                        <div class="form-check checkbox-item">
+                            <input class="form-check-input" type="checkbox" id="check-${v.replace(/\s+/g, '-')}" 
+                                   value="${v}" ${existing.includes(v) ? 'checked' : ''}>
+                            <label class="form-check-label" for="check-${v.replace(/\s+/g, '-')}">
+                                ${v}
+                            </label>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="select-actions mt-3">
+                    <button type="button" class="btn btn-sm btn-outline-secondary select-all">Select All</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary ms-2 deselect-all">Deselect All</button>
+                </div>
+            `;
         } else {
             bodyContent = `
-                <input type="text" class="form-control mb-2" id="free-text-filter" placeholder="Type and press Enter" />
+                <div class="mb-3">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="free-text-filter" 
+                               placeholder="Type and press Enter">
+                        <button class="btn btn-outline-primary" type="button" id="add-text-filter">
+                            Add
+                        </button>
+                    </div>
+                    <div class="form-text">Press Enter or click Add after typing</div>
+                </div>
                 <div id="text-filter-tags" class="mb-2"></div>
             `;
         }
@@ -140,13 +214,19 @@
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">Filter by ${field.title}</h5>
+                        <h5 class="modal-title">
+                            <i class="bi bi-funnel me-2"></i>Filter by ${field.title}
+                        </h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">${bodyContent}</div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-primary apply-filter">Apply</button>
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            Cancel
+                        </button>
+                        <button type="button" class="btn btn-primary apply-filter">
+                            Apply
+                        </button>
                     </div>
                 </div>
             </div>
@@ -155,28 +235,90 @@
         const bsModal = new bootstrap.Modal(modal);
         bsModal.show();
 
+        // Focus the input field when modal shows
+        modal.addEventListener('shown.bs.modal', function () {
+            const inputField = field.filter === 'select' 
+                ? document.getElementById('select-filter-search')
+                : document.getElementById('free-text-filter');
+            
+            if (inputField) {
+                inputField.focus();
+            }
+        });
+
+        // Set up select filter search
+        if (field.filter === 'select') {
+            const searchInput = modal.querySelector('#select-filter-search');
+            const options = modal.querySelectorAll('.checkbox-item');
+            
+            // Set up search functionality
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                options.forEach(option => {
+                    const optionText = option.querySelector('.form-check-label').textContent.toLowerCase().trim();
+                    option.style.display = optionText.includes(searchTerm) ? '' : 'none';
+                });
+            });
+            
+            // Set up select/deselect all buttons
+            modal.querySelector('.select-all').addEventListener('click', function() {
+                const visibleCheckboxes = Array.from(options).filter(option => 
+                    option.style.display !== 'none'
+                ).map(option => option.querySelector('input[type="checkbox"]'));
+                
+                visibleCheckboxes.forEach(checkbox => checkbox.checked = true);
+            });
+            
+            modal.querySelector('.deselect-all').addEventListener('click', function() {
+                const visibleCheckboxes = Array.from(options).filter(option => 
+                    option.style.display !== 'none'
+                ).map(option => option.querySelector('input[type="checkbox"]'));
+                
+                visibleCheckboxes.forEach(checkbox => checkbox.checked = false);
+            });
+        }
+
         if (field.filter === 'text') {
             const input = modal.querySelector('#free-text-filter');
+            const addButton = modal.querySelector('#add-text-filter');
             const tagContainer = modal.querySelector('#text-filter-tags');
+            
+            // Render existing tags
             renderTextTags(field.key);
 
+            // Add event listeners
             input.addEventListener('keydown', e => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    const val = input.value.trim();
-                    if (val && (!state.filters[field.key] || !state.filters[field.key].includes(val))) {
-                        if (!state.filters[field.key]) state.filters[field.key] = [];
-                        state.filters[field.key].push(val);
-                        input.value = '';
-                        renderTextTags(field.key);
-                    }
+                    addTextFilter();
                 }
             });
+            
+            addButton.addEventListener('click', addTextFilter);
+
+            function addTextFilter() {
+                const val = input.value.trim();
+                if (val && (!state.filters[field.key] || !state.filters[field.key].includes(val))) {
+                    if (!state.filters[field.key]) state.filters[field.key] = [];
+                    state.filters[field.key].push(val);
+                    input.value = '';
+                    renderTextTags(field.key);
+                    input.focus();
+                }
+            }
 
             function renderTextTags(key) {
-                tagContainer.innerHTML = state.filters[key]?.map(val => `
-                    <span class="filter-tag">${val} <span class="remove-tag" data-val="${val}">&times;</span></span>
-                `).join('') || '';
+                if (!state.filters[key] || !state.filters[key].length) {
+                    tagContainer.innerHTML = '<div class="text-muted fst-italic">No filters added yet</div>';
+                    return;
+                }
+                
+                tagContainer.innerHTML = state.filters[key].map(val => `
+                    <div class="filter-tag">
+                        ${val}
+                        <span class="remove-tag" data-val="${val}">×</span>
+                    </div>
+                `).join('');
 
                 tagContainer.querySelectorAll('.remove-tag').forEach(el => {
                     el.addEventListener('click', () => {
@@ -195,6 +337,7 @@
             bsModal.hide();
             updateTableFilters();
             renderActiveFilters();
+            updateNoFiltersMessage();
         });
     }
 
@@ -204,6 +347,8 @@
         $.fn.dataTable.ext.search.push((settings, data, dataIndex) => {
             const row = state.data[dataIndex];
             for (let key in state.filters) {
+                if (!state.filters[key] || state.filters[key].length === 0) continue;
+                
                 const filterVals = state.filters[key];
                 const cellVal = String(row[key] || '').toLowerCase();
                 if (!filterVals.some(f => cellVal.includes(f.toLowerCase()))) {
@@ -223,27 +368,49 @@
         const container = document.getElementById('active-filters');
         container.innerHTML = '';
 
+        let hasFilters = false;
+        
         Object.entries(state.filters).forEach(([key, values]) => {
+            if (!values || values.length === 0) return;
+            
+            hasFilters = true;
             const title = config.fields.find(f => f.key === key)?.title || key;
+            
             values.forEach(val => {
                 const tag = document.createElement('div');
                 tag.className = 'filter-tag';
-                tag.innerHTML = `${title}: ${val} <span class="close" data-key="${key}" data-val="${val}">&times;</span>`;
-                tag.querySelector('.close').addEventListener('click', () => {
+                tag.innerHTML = `
+                    ${title}: ${val}
+                    <span class="remove-tag" data-key="${key}" data-val="${val}">×</span>
+                `;
+                tag.querySelector('.remove-tag').addEventListener('click', () => {
                     state.filters[key] = state.filters[key].filter(v => v !== val);
                     if (state.filters[key].length === 0) delete state.filters[key];
                     updateTableFilters();
                     renderActiveFilters();
+                    updateNoFiltersMessage();
                 });
                 container.appendChild(tag);
             });
         });
+        
+        return hasFilters;
+    }
+    
+    function updateNoFiltersMessage() {
+        const noFiltersMsg = document.getElementById('no-filters-message');
+        const hasActiveFilters = Object.values(state.filters).some(vals => vals && vals.length > 0);
+        
+        if (noFiltersMsg) {
+            noFiltersMsg.style.display = hasActiveFilters ? 'none' : 'block';
+        }
     }
 
     function clearFilters() {
         state.filters = {};
         renderActiveFilters();
         updateTableFilters();
+        updateNoFiltersMessage();
     }
 
     function updateStats() {
@@ -363,7 +530,8 @@
     // Helper function to get data that's currently visible after filtering
     function getVisibleData() {
         // If no filters are applied, return all data
-        if (Object.keys(state.filters).length === 0) {
+        if (Object.keys(state.filters).length === 0 || 
+            !Object.values(state.filters).some(arr => arr && arr.length > 0)) {
             return state.data;
         }
 
@@ -371,6 +539,10 @@
         return state.data.filter(row => {
             for (let key in state.filters) {
                 const filterVals = state.filters[key];
+                
+                // Skip empty filter arrays
+                if (!filterVals || filterVals.length === 0) continue;
+                
                 const cellVal = String(row[key] || '').toLowerCase();
                 if (!filterVals.some(f => cellVal.includes(f.toLowerCase()))) {
                     return false;
@@ -381,24 +553,52 @@
     }
 
     function exportCSV() {
-        const rows = state.table.rows({ search: 'applied' }).data().toArray();
-        const headers = config.fields.map(f => f.title);
+        const visibleData = getVisibleData();
+        
+        if (visibleData.length === 0) {
+            alert('No data to export');
+            return;
+        }
+        
+        // Get visible columns
+        const visibleFields = config.fields.filter(f => {
+            const columnIdx = state.table.column(f.key + ':name').index();
+            return columnIdx === undefined || state.table.column(columnIdx).visible();
+        });
+        
+        const headers = visibleFields.map(f => f.title);
         let csv = headers.join(',') + '\n';
 
-        rows.forEach(row => {
-            const line = config.fields.map(f => {
+        visibleData.forEach(row => {
+            const line = visibleFields.map(f => {
                 let val = row[f.key] ?? '';
-                val = val.replace(/[^a-z0-9\-\,]/ig, '');
-                return typeof val === 'string' && val.includes(',') ? `"${val}"` : val;
+                
+                // Format value if needed
+                if (f.format === 'currency' && val !== '') {
+                    val = Number(val).toLocaleString().replace(/,/g, '');
+                }
+                
+                // Format date if needed
+                if (f.format === 'date' && val !== '') {
+                    val = new Date(val).toLocaleDateString();
+                }
+                
+                // Handle commas and quotes
+                val = String(val).replace(/"/g, '""');
+                return val.includes(',') || val.includes('"') ? `"${val}"` : val;
             });
             csv += line.join(',') + '\n';
         });
 
-        const blob = new Blob([csv], { type: 'text/csv' });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
+        
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
+        const filename = `${config.title || 'export'}-${timestamp}.csv`;
+        
         a.href = url;
-        a.download = 'export.csv';
+        a.download = filename;
         a.hidden = true;
         document.body.appendChild(a);
         a.click();
