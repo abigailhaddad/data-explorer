@@ -43,14 +43,42 @@
             data: field.key,
             title: field.title,
             visible: field.visible !== false,
-            render: (d, type, row) => {
-                if (field.format === 'currency') return `$${Number(d).toLocaleString()}`;
-                if (field.format === 'date') return new Date(d).toLocaleDateString();
-                if (field.key === 'status') {
-                    const cls = d === 'Active' ? 'bg-success' : 'bg-warning';
-                    return `<span class="badge ${cls}">${d}</span>`;
+            render: (data, type, row) => {
+                // If we're requesting the raw data for sorting/filtering, return it
+                if (type === 'sort' || type === 'filter') {
+                    return data;
                 }
-                return d;
+                
+                // Handle currency formatting
+                if (field.format === 'currency') {
+                    return `$${Number(data).toLocaleString()}`;
+                }
+                
+                // Handle date formatting
+                if (field.format === 'date') {
+                    return new Date(data).toLocaleDateString();
+                }
+                
+                // Handle badge formatting if badges are configured
+                if (field.badges && field.badges[data]) {
+                    const colorClass = field.badges[data];
+                    
+                    // Check if it's a hex color or a Bootstrap class
+                    if (colorClass.startsWith('#')) {
+                        return `<span class="badge" style="background-color: ${colorClass}">${data}</span>`;
+                    } else {
+                        return `<span class="badge ${colorClass}">${data}</span>`;
+                    }
+                }
+                
+                // Special case for status field for backward compatibility
+                if (field.key === 'status' && !field.badges) {
+                    const cls = data === 'Active' ? 'bg-success' : 'bg-warning';
+                    return `<span class="badge ${cls}">${data}</span>`;
+                }
+                
+                // Default case - return the data as is
+                return data;
             }
         }));
 
@@ -277,7 +305,7 @@
                     }
                     
                     if (stat.format === 'currency') {
-                        formattedValue = `${value.toLocaleString()}`;
+                        formattedValue = `$${value.toLocaleString()}`;
                     } else {
                         formattedValue = value.toLocaleString();
                     }
@@ -295,7 +323,7 @@
                     }
                     
                     if (stat.format === 'currency') {
-                        formattedValue = `${value.toLocaleString()}`;
+                        formattedValue = `$${value.toLocaleString()}`;
                     } else {
                         formattedValue = value.toLocaleString();
                     }
