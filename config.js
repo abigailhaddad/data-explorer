@@ -1,5 +1,6 @@
 // config.js
 window.DATASET_CONFIG = {
+    title: 'Employees Database Test',
     datasetName: 'Employees',
     keyField: 'id',
     fields: [
