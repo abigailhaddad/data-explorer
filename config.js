@@ -12,7 +12,21 @@ window.DATASET_CONFIG = {
         { key: 'salary',       title: 'Salary',       format: 'currency', visible: true },
         { key: 'location',     title: 'Location',     filter: 'select', visible: true },
         { key: 'joined',       title: 'Join Date',    format: 'date', visible: true },
-        { key: 'status',       title: 'Status',       filter: 'select', visible: true },
+        { 
+            key: 'status',     
+            title: 'Status',   
+            filter: 'select', 
+            visible: true,
+            badges: {
+                'Active': 'bg-success',
+                'On Leave': 'bg-warning',
+                'Contract': 'bg-info',
+                'Probation': 'bg-secondary',
+                'Terminated': 'bg-danger'
+                // Can also use hex colors like:
+                // 'Custom Status': '#ff5733'
+            }
+        },
         { key: 'notes',        title: 'Notes',        visible: false }
     ],
     stats: [
