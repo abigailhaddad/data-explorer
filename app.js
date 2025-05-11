@@ -218,32 +218,135 @@
 
     function updateStats() {
         const stats = config.stats;
-        const data = state.data;
+        const visibleData = getVisibleData();
 
         const container = document.getElementById('statistics');
         container.innerHTML = '<div class="row text-center"></div>';
         const row = container.querySelector('.row');
 
         stats.forEach(stat => {
-            let count = 0;
+            let value = null;
+            let formattedValue = '';
 
-            if (stat.type === 'count') {
-                if (stat.key === 'total') {
-                    count = data.length;
-                } else if (stat.match !== undefined) {
-                    count = data.filter(row => String(row[stat.key]) === stat.match).length;
-                } else {
-                    count = data.filter(row => row[stat.key] !== undefined).length;
-                }
+            switch (stat.type) {
+                case 'count':
+                    if (stat.key === 'total') {
+                        value = visibleData.length;
+                    } else if (stat.match !== undefined) {
+                        value = visibleData.filter(row => String(row[stat.key]) === stat.match).length;
+                    } else {
+                        value = visibleData.filter(row => row[stat.key] !== undefined).length;
+                    }
+                    formattedValue = value.toLocaleString();
+                    break;
+
+                case 'unique':
+                    const uniqueValues = new Set(visibleData.map(row => row[stat.key]).filter(Boolean));
+                    value = uniqueValues.size;
+                    formattedValue = value.toLocaleString();
+                    break;
+
+                case 'mean':
+                    const validValues = visibleData
+                        .map(row => parseFloat(row[stat.key]))
+                        .filter(val => !isNaN(val));
+                    
+                    if (validValues.length > 0) {
+                        const sum = validValues.reduce((a, b) => a + b, 0);
+                        value = sum / validValues.length;
+                    } else {
+                        value = 0;
+                    }
+                    
+                    if (stat.format === 'currency') {
+                        formattedValue = `$${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+                    } else {
+                        formattedValue = value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+                    }
+                    break;
+
+                case 'min':
+                    const minValues = visibleData
+                        .map(row => parseFloat(row[stat.key]))
+                        .filter(val => !isNaN(val));
+                    
+                    if (minValues.length > 0) {
+                        value = Math.min(...minValues);
+                    } else {
+                        value = 0;
+                    }
+                    
+                    if (stat.format === 'currency') {
+                        formattedValue = `${value.toLocaleString()}`;
+                    } else {
+                        formattedValue = value.toLocaleString();
+                    }
+                    break;
+                    
+                case 'max':
+                    const maxValues = visibleData
+                        .map(row => parseFloat(row[stat.key]))
+                        .filter(val => !isNaN(val));
+                    
+                    if (maxValues.length > 0) {
+                        value = Math.max(...maxValues);
+                    } else {
+                        value = 0;
+                    }
+                    
+                    if (stat.format === 'currency') {
+                        formattedValue = `${value.toLocaleString()}`;
+                    } else {
+                        formattedValue = value.toLocaleString();
+                    }
+                    break;
+
+                case 'sum':
+                    const sumValues = visibleData
+                        .map(row => parseFloat(row[stat.key]))
+                        .filter(val => !isNaN(val));
+                    
+                    if (sumValues.length > 0) {
+                        value = sumValues.reduce((a, b) => a + b, 0);
+                    } else {
+                        value = 0;
+                    }
+                    
+                    if (stat.format === 'currency') {
+                        formattedValue = `$${value.toLocaleString()}`;
+                    } else {
+                        formattedValue = value.toLocaleString();
+                    }
+                    break;
             }
 
             const statHTML = `
                 <div class="col">
-                    <h3>${count}</h3>
+                    <h3>${formattedValue}</h3>
                     <p>${stat.label}</p>
                 </div>
             `;
             row.innerHTML += statHTML;
+        });
+    }
+
+    // Helper function to get data that's currently visible after filtering
+    function getVisibleData() {
+        // If no filters are applied, return all data
+        if (Object.keys(state.filters).length === 0) {
+            return state.data;
+        }
+
+        // Otherwise, apply filters manually
+        return state.data.filter(row => {
+            for (let key in state.filters) {
+                const filterVals = state.filters[key];
+                const cellVal = String(row[key] || '').toLowerCase();
+                if (!filterVals.some(f => cellVal.includes(f.toLowerCase()))) {
+                    return false;
+                }
+            }
+            return true;
         });
     }
 

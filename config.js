@@ -16,9 +16,10 @@ window.DATASET_CONFIG = {
         { key: 'notes',        title: 'Notes',        visible: false }
     ],
     stats: [
-        { key: 'total',     label: 'Total Records',    type: 'count' },
-        { key: 'status',    label: 'Active Employees', type: 'count', match: 'Active' },
-        { key: 'status',    label: 'On Leave',         type: 'count', match: 'On Leave' },
-        { key: 'status',    label: 'Contractors',      type: 'count', match: 'Contract' }
+        { key: 'total',        label: 'Total Records',    type: 'count' },
+        { key: 'status',       label: 'Active Employees', type: 'count', match: 'Active' },
+        { key: 'department',   label: 'Departments',      type: 'unique' },
+        { key: 'salary',       label: 'Min Salary',       type: 'min', format: 'currency' },
+        { key: 'salary',       label: 'Total Payroll',    type: 'sum', format: 'currency' }
     ]
 };
