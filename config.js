@@ -23,12 +23,11 @@ window.DATASET_CONFIG = {
                 'Contract': 'bg-info',
                 'Probation': 'bg-secondary',
                 'Terminated': 'bg-danger'
-                // Can also use hex colors like:
-                // 'Custom Status': '#ff5733'
             }
         },
-        { key: 'notes',        title: 'Notes',        visible: false }
+        { key: 'notes',        title: 'Notes',        filter: 'text', visible: false }
     ],
+
     stats: [
         { key: 'total',        label: 'Total Records',    type: 'count' },
         { key: 'status',       label: 'Active Employees', type: 'count', match: 'Active' },

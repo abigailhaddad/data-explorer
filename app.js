@@ -88,7 +88,7 @@
             responsive: true,
             searchHighlight: true,      // <-- Enables search highlighting
             fixedHeader: true,          // <-- Enables sticky header
-            dom: '<"dt-buttons"B><"d-flex justify-content-between"lf>rtip',
+            dom: '<"dt-buttons"B><"d-flex justify-content-between"l>tip', // Removed 'f' to hide the search box
             pageLength: 50,
             buttons: [
                 {
@@ -198,7 +198,7 @@
         });
     }
 
-    function updateTableFilters() {
+    function updateTableFilters(redraw = true) {
         $.fn.dataTable.ext.search = [];
 
         $.fn.dataTable.ext.search.push((settings, data, dataIndex) => {
@@ -213,8 +213,10 @@
             return true;
         });
 
-        state.table.draw();
-        updateStats();
+        if (redraw) {
+            state.table.draw();
+            updateStats();
+        }
     }
 
     function renderActiveFilters() {
