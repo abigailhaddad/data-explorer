@@ -174,10 +174,25 @@ console.log('Config:', window.DATASET_CONFIG);
     }
 
     function getFieldValueRange(field) {
-        // Get all numeric values for this field
-        let values = state.data
-            .map(row => parseFloat(row[field.key]))
-            .filter(val => !isNaN(val) && val !== null && val !== undefined);
+        // Handle different field types
+        let values;
+        
+        if (field.format === 'date') {
+            // For dates, convert to timestamps
+            values = state.data
+                .map(row => {
+                    if (!row[field.key]) return null;
+                    // Try to parse the date string
+                    const date = new Date(row[field.key]);
+                    return isNaN(date.getTime()) ? null : date.getTime();
+                })
+                .filter(val => val !== null && val !== undefined);
+        } else {
+            // For numeric fields, use parseFloat
+            values = state.data
+                .map(row => parseFloat(row[field.key]))
+                .filter(val => !isNaN(val) && val !== null && val !== undefined);
+        }
         
         if (values.length === 0) return null;
         
@@ -871,7 +886,15 @@ function updateTableFilters(redraw = true) {
             if (field && (field.filter === 'numeric' || field.filter === 'currency' || field.filter === 'date')) {
                 // Handle numeric/currency/date filters
                 if (filterValue.range || filterValue.exact) {
-                    const cellValue = parseFloat(row[key]);
+                    let cellValue;
+                    
+                    // Handle date fields properly
+                    if (field.format === 'date') {
+                        const date = new Date(row[key]);
+                        cellValue = isNaN(date.getTime()) ? NaN : date.getTime();
+                    } else {
+                        cellValue = parseFloat(row[key]);
+                    }
                     
                     if (isNaN(cellValue)) {
                         return false;
@@ -1111,7 +1134,15 @@ function updateTableFilters(redraw = true) {
                 if (field && (field.filter === 'numeric' || field.filter === 'currency' || field.filter === 'date')) {
                     // Handle numeric/currency/date filters
                     if (filterValue.range || filterValue.exact) {
-                        const cellValue = parseFloat(row[key]);
+                        let cellValue;
+                        
+                        // Handle date fields properly
+                        if (field.format === 'date') {
+                            const date = new Date(row[key]);
+                            cellValue = isNaN(date.getTime()) ? NaN : date.getTime();
+                        } else {
+                            cellValue = parseFloat(row[key]);
+                        }
                         
                         if (isNaN(cellValue)) {
                             return false;
