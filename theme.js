@@ -97,6 +97,14 @@
             /* Make DataTable buttons match */
             .dt-button {
                 font-weight: 600 !important;
+                background-color: var(--bs-primary) !important;
+                border-color: var(--bs-primary) !important;
+                color: white !important;
+            }
+            
+            .dt-button:hover {
+                background-color: var(--accent) !important;
+                border-color: var(--accent) !important;
             }
         `,
         rounded: `
@@ -138,6 +146,15 @@
             .dt-button {
                 border-radius: 50rem !important;
                 font-weight: 600 !important;
+                background-color: var(--bs-primary) !important;
+                border-color: var(--bs-primary) !important;
+                color: white !important;
+            }
+            
+            .dt-button:hover {
+                background-color: var(--accent) !important;
+                border-color: var(--accent) !important;
+                transform: scale(1.03);
             }
         `,
         flat: `
@@ -177,6 +194,95 @@
             .dt-button {
                 font-weight: 600 !important;
                 border-width: 2px !important;
+                background-color: var(--bs-primary) !important;
+                border-color: var(--bs-primary) !important;
+                color: white !important;
+            }
+            
+            .dt-button:hover {
+                filter: brightness(110%);
+            }
+        `
+    };
+
+    // Define card shadow styles
+    const CARD_STYLES = {
+        subtle: `
+            .card {
+                box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+                border: 1px solid rgba(0, 0, 0, 0.08);
+                transition: box-shadow 0.2s ease-in-out;
+            }
+            
+            .card:hover {
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            }
+        `,
+        elevated: `
+            .card {
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+                border: 1px solid rgba(0, 0, 0, 0.12);
+                transition: all 0.2s ease-in-out;
+            }
+            
+            .card:hover {
+                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+                transform: translateY(-1px);
+            }
+        `,
+        material: `
+            .card {
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+                border: none;
+                border-radius: 8px;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            
+            .card:hover {
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+                transform: translateY(-2px);
+            }
+        `,
+        bordered: `
+            .card {
+                box-shadow: none;
+                border: 2px solid var(--bs-primary);
+                background-color: #ffffff;
+                transition: all 0.2s ease-in-out;
+            }
+            
+            .card:hover {
+                border-color: var(--accent);
+                box-shadow: 0 2px 4px rgba(var(--bs-primary-rgb), 0.1);
+            }
+        `,
+        minimal: `
+            .card {
+                box-shadow: none;
+                border: 1px solid #e5e7eb;
+                background-color: #ffffff;
+                transition: all 0.2s ease-in-out;
+            }
+            
+            .card:hover {
+                border-color: var(--bs-primary);
+                box-shadow: 0 1px 2px rgba(var(--bs-primary-rgb), 0.1);
+            }
+        `,
+        glass: `
+            .card {
+                box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+                backdrop-filter: blur(4px);
+                -webkit-backdrop-filter: blur(4px);
+                background: rgba(255, 255, 255, 0.8);
+                border: 1px solid rgba(255, 255, 255, 0.18);
+                transition: all 0.3s ease;
+            }
+            
+            .card:hover {
+                backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px);
+                box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.5);
             }
         `
     };
@@ -195,7 +301,11 @@
         const buttonStyleName = theme.buttonStyle || 'default';
         const buttonStyle = BUTTON_STYLES[buttonStyleName] || BUTTON_STYLES.default;
         
-        // Create CSS variables
+        // Get card style
+        const cardStyleName = theme.cardStyle || 'subtle';
+        const cardStyle = CARD_STYLES[cardStyleName] || CARD_STYLES.subtle;
+        
+        // Create CSS variables and DataTables specific styling
         const cssVars = `
             :root {
                 --bs-primary: ${colorScheme.primary};
@@ -217,8 +327,57 @@
                 color: var(--bs-primary) !important;
             }
             
+            /* DataTables column visibility menu styling */
+            .dt-button-collection {
+                background-color: white !important;
+                border: 1px solid #dee2e6 !important;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+            }
+            
+            .dt-button-collection .dt-button {
+                background-color: transparent !important;
+                border: none !important;
+                color: #374151 !important;
+                padding: 0.5rem 0.75rem !important;
+                margin: 0 !important;
+                width: 100% !important;
+                text-align: left !important;
+                border-radius: 0 !important;
+                font-size: 0.875rem !important;
+            }
+            
+            .dt-button-collection .dt-button:hover {
+                background-color: var(--bs-primary) !important;
+                color: white !important;
+            }
+            
+            .dt-button-collection .dt-button.active {
+                background-color: var(--bs-primary) !important;
+                color: white !important;
+                position: relative;
+            }
+            
+            .dt-button-collection .dt-button.active::after {
+                content: "✓";
+                position: absolute;
+                right: 0.75rem;
+                color: white;
+            }
+            
+            /* Style the dropdown arrow */
+            .dt-button-collection::before {
+                display: none !important;
+            }
+            
             ${buttonStyle}
+            ${cardStyle}
         `;
+        
+        // Remove existing theme styles to prevent accumulation
+        const existingStyle = document.getElementById('theme-styles');
+        if (existingStyle) {
+            existingStyle.remove();
+        }
         
         // Create and append style tag
         const styleTag = document.createElement('style');
@@ -229,4 +388,7 @@
 
     // Apply theme when DOM is loaded
     document.addEventListener('DOMContentLoaded', applyTheme);
+    
+    // Export for manual theme changes
+    window.applyTheme = applyTheme;
 })();
