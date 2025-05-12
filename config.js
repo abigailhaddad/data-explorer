@@ -53,6 +53,7 @@ window.DATASET_CONFIG = {
             key: 'salary',       
             title: 'Salary',       
             format: 'currency', 
+            filter: 'numeric',
             visible: true 
         },
         { 
@@ -65,6 +66,7 @@ window.DATASET_CONFIG = {
             key: 'joined',       
             title: 'Join Date',    
             format: 'date', 
+            filter: 'numeric',
             visible: true 
         },
         {              

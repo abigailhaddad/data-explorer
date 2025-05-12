@@ -81,7 +81,7 @@
     margin-bottom: 0.5rem;
 }
 
-.filter-tag .remove-tag {
+.filter-tag .remove-tag, .filter-tag .remove-range-tag, .filter-tag .remove-exact-tag {
     cursor: pointer;
     background: rgba(255, 255, 255, 0.2);
     border-radius: 50%;
@@ -95,7 +95,7 @@
     transition: background-color 0.15s ease;
 }
 
-.filter-tag .remove-tag:hover {
+.filter-tag .remove-tag:hover, .filter-tag .remove-range-tag:hover, .filter-tag .remove-exact-tag:hover {
     background: rgba(255, 255, 255, 0.3);
 }
 
@@ -120,6 +120,7 @@
 .table th {
     padding: 0.75rem;
     border-bottom: 2px solid #dee2e6;
+    position: relative;
 }
 
 /* Custom styles for badges in table */
@@ -153,4 +154,161 @@
     color: #6c757d;
     font-size: 0.875rem;
     margin-bottom: 0;
+}
+
+/* Column header filter button styling */
+.column-filter-btn {
+    background: none;
+    border: none;
+    padding: 4px 6px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.8);
+    margin-left: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.column-filter-btn i {
+    opacity: 0.6;
+    font-size: 12px;
+}
+
+.column-filter-btn:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+    color: white;
+}
+
+.column-filter-btn:hover i {
+    opacity: 0.9;
+}
+
+.column-filter-btn.active {
+    background-color: var(--accent);
+    color: white;
+}
+
+.column-filter-btn.active i {
+    opacity: 1;
+}
+
+.column-filter-btn.active:hover {
+    background-color: var(--accent);
+    filter: brightness(110%);
+}
+
+/* Make sure column headers are properly aligned */
+.table th {
+    vertical-align: middle;
+    white-space: nowrap;
+    position: relative;
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    min-height: 30px;
+}
+
+.header-text {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Ensure buttons are visible */
+.column-filter-btn {
+    min-width: 24px;
+    min-height: 24px;
+}
+
+/* Responsive adjustments for filter buttons */
+@media (max-width: 768px) {
+    .column-filter-btn {
+        padding: 2px 4px;
+        min-width: 20px;
+        min-height: 20px;
+    }
+    
+    .column-filter-btn i {
+        font-size: 10px;
+    }
+}
+
+/* Range slider styling */
+.range-slider-container {
+    padding: 20px 0;
+}
+
+.range-slider {
+    position: relative;
+    width: 100%;
+}
+
+.range-slider .slider-track {
+    height: 4px;
+    background-color: #e0e0e0;
+    border-radius: 2px;
+    position: relative;
+}
+
+.range-slider .slider-range {
+    height: 4px;
+    background-color: var(--bs-primary);
+    border-radius: 2px;
+    position: absolute;
+}
+
+.range-slider input[type="range"] {
+    position: absolute;
+    top: -8px;
+    width: 100%;
+    height: 20px;
+    background: transparent;
+    -webkit-appearance: none;
+    appearance: none;
+    pointer-events: none;
+}
+
+.range-slider input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    background: var(--bs-primary);
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    pointer-events: all;
+    cursor: pointer;
+}
+
+.range-slider input[type="range"]::-moz-range-thumb {
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    background: var(--bs-primary);
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    pointer-events: all;
+    cursor: pointer;
+    border: none;
+}
+
+.range-values {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+.range-values .current-range {
+    font-weight: 600;
+    color: var(--bs-primary);
+    text-align: center;
+    flex: 1;
 }

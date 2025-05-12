@@ -1,3 +1,5 @@
+console.log('App.js is loading...');
+console.log('Config:', window.DATASET_CONFIG);
 (function () {
     const config = window.DATASET_CONFIG;
     const state = {
@@ -171,11 +173,51 @@
         });
     }
 
+    function getFieldValueRange(field) {
+        // Handle different field types
+        let values;
+        
+        if (field.format === 'date') {
+            // For dates, convert to timestamps
+            values = state.data
+                .map(row => {
+                    if (!row[field.key]) return null;
+                    // Try to parse the date string
+                    const date = new Date(row[field.key]);
+                    return isNaN(date.getTime()) ? null : date.getTime();
+                })
+                .filter(val => val !== null && val !== undefined);
+        } else {
+            // For numeric fields, use parseFloat
+            values = state.data
+                .map(row => parseFloat(row[field.key]))
+                .filter(val => !isNaN(val) && val !== null && val !== undefined);
+        }
+        
+        if (values.length === 0) return null;
+        
+        const min = Math.min(...values);
+        const max = Math.max(...values);
+        
+        return { min, max };
+    }
+
     function showFilterModal(field) {
+        // Define formatValue function at the very beginning
+        function formatValue(value, field) {
+            if (field.format === 'currency') {
+                return '$' + value.toLocaleString();
+            } else if (field.format === 'date') {
+                return new Date(value).toLocaleDateString();
+            } else {
+                return value.toLocaleString();
+            }
+        }
+        
         const modal = document.getElementById('filter-modal');
         const existing = state.filters[field.key] || [];
         let bodyContent = '';
-
+    
         if (field.filter === 'select') {
             // Get unique values and sort them
             const values = Array.from(new Set(state.data.map(row => row[field.key]))).filter(Boolean).sort();
@@ -239,6 +281,100 @@
                     <button type="button" class="btn btn-sm btn-outline-secondary ms-2 deselect-all">Deselect All</button>
                 </div>
             `;
+        } else if (field.filter === 'numeric' || field.filter === 'currency' || field.filter === 'date') {
+            // Get the range of values in the data
+            const valueRange = getFieldValueRange(field);
+            
+            if (!valueRange) {
+                bodyContent = `
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        No numeric data found for this field.
+                    </div>
+                `;
+            } else {
+                // Check for existing numeric filters
+                const existingRange = existing.range || {};
+                const existingExact = existing.exact || [];
+                
+                // Set default range values
+                const minValue = existingRange.min !== undefined ? existingRange.min : valueRange.min;
+                const maxValue = existingRange.max !== undefined ? existingRange.max : valueRange.max;
+                
+                // Calculate step based on the range
+                let step;
+                if (field.format === 'currency') {
+                    // For currency, use steps based on the range size
+                    const range = valueRange.max - valueRange.min;
+                    if (range > 1000000) step = 10000;
+                    else if (range > 100000) step = 5000;
+                    else if (range > 10000) step = 1000;
+                    else if (range > 1000) step = 100;
+                    else step = 10;
+                } else if (field.format === 'date') {
+                    // For dates, use day increments
+                    step = 86400000; // 1 day in milliseconds
+                } else {
+                    // For other numeric fields, calculate appropriate step
+                    const range = valueRange.max - valueRange.min;
+                    if (range > 1000) step = Math.floor(range / 100);
+                    else if (range > 100) step = Math.floor(range / 50);
+                    else step = 1;
+                }
+                
+                bodyContent = `
+                    <div class="range-slider-container">
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label fw-semibold">Range Filter</label>
+                            </div>
+                            
+                            <div class="range-slider">
+                                <div class="slider-track">
+                                    <div class="slider-range" id="slider-range"></div>
+                                </div>
+                                <input type="range" 
+                                       id="min-range" 
+                                       min="${valueRange.min}" 
+                                       max="${valueRange.max}" 
+                                       value="${minValue}" 
+                                       step="${step}">
+                                <input type="range" 
+                                       id="max-range" 
+                                       min="${valueRange.min}" 
+                                       max="${valueRange.max}" 
+                                       value="${maxValue}" 
+                                       step="${step}">
+                            </div>
+                            
+                            <div class="range-values">
+                                <span id="min-value-display">${formatValue(minValue, field)}</span>
+                                <span class="current-range" id="current-range">Current Range</span>
+                                <span id="max-value-display">${formatValue(maxValue, field)}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <small><i class="bi bi-info-circle me-2"></i>Drag the sliders to set your desired range</small>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6 class="fw-semibold">Exact Values</h6>
+                        <div class="input-group">
+                            <input type="number" step="${field.format === 'currency' ? '0.01' : (field.format === 'date' ? '1' : step)}" 
+                                   class="form-control" id="exact-value-input" 
+                                   placeholder="Enter exact value and press Enter">
+                            <button class="btn btn-outline-primary" type="button" id="add-exact-value">
+                                Add
+                            </button>
+                        </div>
+                        <div class="form-text">Add specific values to include in results</div>
+                    </div>
+                    
+                    <div id="exact-value-tags" class="mb-2"></div>
+                `;
+            }
         } else {
             bodyContent = `
                 <div class="mb-3">
@@ -254,7 +390,7 @@
                 <div id="text-filter-tags" class="mb-2"></div>
             `;
         }
-
+    
         modal.innerHTML = `
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -276,23 +412,28 @@
                 </div>
             </div>
         `;
-
+    
         const bsModal = new bootstrap.Modal(modal);
         bsModal.show();
-
+    
         // Focus the input field when modal shows
         modal.addEventListener('shown.bs.modal', function () {
-            const inputField = field.filter === 'select' 
-                ? document.getElementById('select-filter-search')
-                : field.filter === 'multi-label'
-                ? document.getElementById('multi-label-filter-search')
-                : document.getElementById('free-text-filter');
+            let inputField;
+            if (field.filter === 'select') {
+                inputField = document.getElementById('select-filter-search');
+            } else if (field.filter === 'multi-label') {
+                inputField = document.getElementById('multi-label-filter-search');
+            } else if (field.filter === 'numeric' || field.filter === 'currency' || field.filter === 'date') {
+                inputField = document.getElementById('min-range');
+            } else {
+                inputField = document.getElementById('free-text-filter');
+            }
             
             if (inputField) {
                 inputField.focus();
             }
         });
-
+    
         // Set up search for select and multi-label filters
         if (field.filter === 'select' || field.filter === 'multi-label') {
             const searchInputId = field.filter === 'select' ? 'select-filter-search' : 'multi-label-filter-search';
@@ -325,7 +466,7 @@
                 visibleCheckboxes.forEach(checkbox => checkbox.checked = false);
             });
         }
-
+    
         if (field.filter === 'text') {
             const input = modal.querySelector('#free-text-filter');
             const addButton = modal.querySelector('#add-text-filter');
@@ -333,7 +474,7 @@
             
             // Render existing tags
             renderTextTags(field.key);
-
+    
             // Add event listeners
             input.addEventListener('keydown', e => {
                 if (e.key === 'Enter') {
@@ -343,7 +484,7 @@
             });
             
             addButton.addEventListener('click', addTextFilter);
-
+    
             function addTextFilter() {
                 const val = input.value.trim();
                 if (val && (!state.filters[field.key] || !state.filters[field.key].includes(val))) {
@@ -354,7 +495,7 @@
                     input.focus();
                 }
             }
-
+    
             function renderTextTags(key) {
                 if (!state.filters[key] || !state.filters[key].length) {
                     tagContainer.innerHTML = '<div class="text-muted fst-italic">No filters added yet</div>';
@@ -367,7 +508,7 @@
                         <span class="remove-tag" data-val="${val}">×</span>
                     </div>
                 `).join('');
-
+    
                 tagContainer.querySelectorAll('.remove-tag').forEach(el => {
                     el.addEventListener('click', () => {
                         state.filters[key] = state.filters[key].filter(v => v !== el.dataset.val);
@@ -376,11 +517,160 @@
                 });
             }
         }
-
+    
+        // Handle numeric filter setup
+        if (field.filter === 'numeric' || field.filter === 'currency' || field.filter === 'date') {
+            const minRange = modal.querySelector('#min-range');
+            const maxRange = modal.querySelector('#max-range');
+            const sliderRange = modal.querySelector('#slider-range');
+            const minDisplay = modal.querySelector('#min-value-display');
+            const maxDisplay = modal.querySelector('#max-value-display');
+            
+            if (minRange && maxRange && sliderRange) {
+                // Update slider visual range
+                function updateSliderRange() {
+                    const min = parseFloat(minRange.value);
+                    const max = parseFloat(maxRange.value);
+                    const rangeMin = parseFloat(minRange.min);
+                    const rangeMax = parseFloat(minRange.max);
+                    
+                    // Ensure min doesn't exceed max
+                    if (min > max) {
+                        minRange.value = max;
+                    }
+                    if (max < min) {
+                        maxRange.value = min;
+                    }
+                    
+                    const leftPercent = ((minRange.value - rangeMin) / (rangeMax - rangeMin)) * 100;
+                    const rightPercent = ((maxRange.value - rangeMin) / (rangeMax - rangeMin)) * 100;
+                    
+                    sliderRange.style.left = leftPercent + '%';
+                    sliderRange.style.width = (rightPercent - leftPercent) + '%';
+                    
+                    minDisplay.textContent = formatValue(parseFloat(minRange.value), field);
+                    maxDisplay.textContent = formatValue(parseFloat(maxRange.value), field);
+                }
+                
+                // Initial update
+                updateSliderRange();
+                
+                // Event listeners for sliders
+                minRange.addEventListener('input', updateSliderRange);
+                maxRange.addEventListener('input', updateSliderRange);
+            }
+            
+            // Handle exact values
+            const exactInput = modal.querySelector('#exact-value-input');
+            const addExactButton = modal.querySelector('#add-exact-value');
+            const exactTagContainer = modal.querySelector('#exact-value-tags');
+            
+            if (exactInput && addExactButton && exactTagContainer) {
+                // Render existing exact value tags
+                renderExactValueTags(field.key);
+    
+                // Add event listeners
+                exactInput.addEventListener('keydown', e => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addExactValue();
+                    }
+                });
+                
+                addExactButton.addEventListener('click', addExactValue);
+    
+                function addExactValue() {
+                    const val = exactInput.value.trim();
+                    if (val && !isNaN(val)) {
+                        const numVal = parseFloat(val);
+                        if (!state.filters[field.key]) state.filters[field.key] = { range: {}, exact: [] };
+                        if (!state.filters[field.key].exact) state.filters[field.key].exact = [];
+                        
+                        if (!state.filters[field.key].exact.includes(numVal)) {
+                            state.filters[field.key].exact.push(numVal);
+                            exactInput.value = '';
+                            renderExactValueTags(field.key);
+                            exactInput.focus();
+                        }
+                    }
+                }
+    
+                function renderExactValueTags(key) {
+                    const exact = state.filters[key]?.exact || [];
+                    
+                    if (!exact.length) {
+                        exactTagContainer.innerHTML = '<div class="text-muted fst-italic">No exact values added yet</div>';
+                        return;
+                    }
+                    
+                    exactTagContainer.innerHTML = exact.map(val => {
+                        let displayValue = val;
+                        if (field.format === 'currency') {
+                            displayValue = '$' + val.toLocaleString();
+                        } else if (field.format === 'date') {
+                            displayValue = new Date(val).toLocaleDateString();
+                        }
+                        
+                        return `
+                            <div class="filter-tag">
+                                ${displayValue}
+                                <span class="remove-exact-tag" data-val="${val}">×</span>
+                            </div>
+                        `;
+                    }).join('');
+    
+                    exactTagContainer.querySelectorAll('.remove-exact-tag').forEach(el => {
+                        el.addEventListener('click', () => {
+                            const valToRemove = parseFloat(el.dataset.val);
+                            state.filters[key].exact = state.filters[key].exact.filter(v => v !== valToRemove);
+                            if (state.filters[key].exact.length === 0 && 
+                                (!state.filters[key].range || 
+                                 (!state.filters[key].range.min && !state.filters[key].range.max))) {
+                                delete state.filters[key];
+                            }
+                            renderExactValueTags(key);
+                        });
+                    });
+                }
+            }
+        }
+    
         modal.querySelector('.apply-filter').addEventListener('click', () => {
             if (field.filter === 'select' || field.filter === 'multi-label') {
                 const checked = modal.querySelectorAll('input[type=checkbox]:checked');
                 state.filters[field.key] = Array.from(checked).map(cb => cb.value);
+            } else if (field.filter === 'numeric' || field.filter === 'currency' || field.filter === 'date') {
+                const minRange = modal.querySelector('#min-range');
+                const maxRange = modal.querySelector('#max-range');
+                
+                if (minRange && maxRange) {
+                    const minVal = parseFloat(minRange.value);
+                    const maxVal = parseFloat(maxRange.value);
+                    const rangeMin = parseFloat(minRange.min);
+                    const rangeMax = parseFloat(minRange.max);
+                    
+                    // Initialize filter object if it doesn't exist
+                    if (!state.filters[field.key]) {
+                        state.filters[field.key] = { range: {}, exact: [] };
+                    }
+                    
+                    // Only set range values if they're different from the full range
+                    if (minVal !== rangeMin || maxVal !== rangeMax) {
+                        state.filters[field.key].range = {
+                            min: minVal,
+                            max: maxVal
+                        };
+                    } else {
+                        state.filters[field.key].range = {};
+                    }
+                    
+                    // Clean up empty filters
+                    if ((!state.filters[field.key].range || 
+                         (!state.filters[field.key].range.min && !state.filters[field.key].range.max)) &&
+                        (!state.filters[field.key].exact || state.filters[field.key].exact.length === 0)) {
+                        delete state.filters[field.key];
+                    }
+                }
             }
             bsModal.hide();
             updateTableFilters();
@@ -388,36 +678,82 @@
             updateNoFiltersMessage();
         });
     }
-
+    // Add the formatValue helper function as a global function (place this outside any other function)
+    function formatValue(value, field) {
+        if (field.format === 'currency') {
+            return '$' + value.toLocaleString();
+        } else if (field.format === 'date') {
+            return new Date(value).toLocaleDateString();
+        } else {
+            return value.toLocaleString();
+        }
+    }
     function updateTableFilters(redraw = true) {
         $.fn.dataTable.ext.search = [];
 
         $.fn.dataTable.ext.search.push((settings, data, dataIndex) => {
             const row = state.data[dataIndex];
             for (let key in state.filters) {
-                if (!state.filters[key] || state.filters[key].length === 0) continue;
+                if (!state.filters[key]) continue;
                 
-                const filterVals = state.filters[key];
                 const field = config.fields.find(f => f.key === key);
+                const filterValue = state.filters[key];
                 
-                if (field && field.filter === 'multi-label') {
-                    // For multi-label fields, check if any selected filter values are present
-                    const cellVal = String(row[key] || '');
-                    const cellLabels = cellVal.split(',').map(label => label.trim());
-                    
-                    // Check if any of the selected filters match any of the cell's labels
-                    const hasMatch = filterVals.some(filterVal => 
-                        cellLabels.some(cellLabel => cellLabel.toLowerCase().includes(filterVal.toLowerCase()))
-                    );
-                    
-                    if (!hasMatch) {
-                        return false;
+                if (field && (field.filter === 'numeric' || field.filter === 'currency' || field.filter === 'date')) {
+                    // Handle numeric/currency/date filters
+                    if (filterValue.range || filterValue.exact) {
+                        const cellValue = parseFloat(row[key]);
+                        
+                        if (isNaN(cellValue)) {
+                            return false;
+                        }
+                        
+                        // Check range constraints
+                        if (filterValue.range) {
+                            if (filterValue.range.min !== undefined && cellValue < filterValue.range.min) {
+                                return false;
+                            }
+                            if (filterValue.range.max !== undefined && cellValue > filterValue.range.max) {
+                                return false;
+                            }
+                        }
+                        
+                        // Check exact values
+                        if (filterValue.exact && filterValue.exact.length > 0) {
+                            // If we have exact values, the value must either match an exact value OR be within range
+                            const matchesExact = filterValue.exact.includes(cellValue);
+                            const matchesRange = (!filterValue.range || 
+                                ((!filterValue.range.min || cellValue >= filterValue.range.min) &&
+                                 (!filterValue.range.max || cellValue <= filterValue.range.max)));
+                            
+                            if (!matchesExact && !matchesRange) {
+                                return false;
+                            }
+                        }
                     }
-                } else {
-                    // Standard filtering for other types
-                    const cellVal = String(row[key] || '').toLowerCase();
-                    if (!filterVals.some(f => cellVal.includes(f.toLowerCase()))) {
-                        return false;
+                } else if (Array.isArray(filterValue)) {
+                    // Handle array-based filters (select, multi-label, text)
+                    if (filterValue.length === 0) continue;
+                    
+                    if (field && field.filter === 'multi-label') {
+                        // For multi-label fields, check if any selected filter values are present
+                        const cellVal = String(row[key] || '');
+                        const cellLabels = cellVal.split(',').map(label => label.trim());
+                        
+                        // Check if any of the selected filters match any of the cell's labels
+                        const hasMatch = filterValue.some(filterVal => 
+                            cellLabels.some(cellLabel => cellLabel.toLowerCase().includes(filterVal.toLowerCase()))
+                        );
+                        
+                        if (!hasMatch) {
+                            return false;
+                        }
+                    } else {
+                        // Standard filtering for other types
+                        const cellVal = String(row[key] || '').toLowerCase();
+                        if (!filterValue.some(f => cellVal.includes(f.toLowerCase()))) {
+                            return false;
+                        }
                     }
                 }
             }
@@ -430,20 +766,25 @@
         }
     }
 
-    function renderActiveFilters() {
-        const container = document.getElementById('active-filters');
-        container.innerHTML = '';
+    // Update the renderActiveFilters function to display ranges nicely
+function renderActiveFilters() {
+    const container = document.getElementById('active-filters');
+    container.innerHTML = '';
 
-        let hasFilters = false;
+    let hasFilters = false;
+    
+    Object.entries(state.filters).forEach(([key, filterValue]) => {
+        if (!filterValue) return;
         
-        Object.entries(state.filters).forEach(([key, values]) => {
-            if (!values || values.length === 0) return;
+        hasFilters = true;
+        const field = config.fields.find(f => f.key === key);
+        const title = field?.title || key;
+        
+        if (Array.isArray(filterValue)) {
+            // Handle array-based filters
+            if (filterValue.length === 0) return;
             
-            hasFilters = true;
-            const field = config.fields.find(f => f.key === key);
-            const title = field?.title || key;
-            
-            values.forEach(val => {
+            filterValue.forEach(val => {
                 const tag = document.createElement('div');
                 tag.className = 'filter-tag';
                 tag.innerHTML = `
@@ -459,14 +800,184 @@
                 });
                 container.appendChild(tag);
             });
-        });
-        
-        return hasFilters;
+        } else if (filterValue.range || filterValue.exact) {
+            // Handle numeric filters
+            if (filterValue.range && (filterValue.range.min !== undefined || filterValue.range.max !== undefined)) {
+                const tag = document.createElement('div');
+                tag.className = 'filter-tag';
+                
+                // Get the full range for comparison
+                const valueRange = getFieldValueRange(field);
+                const isFullRange = valueRange && 
+                    filterValue.range.min === valueRange.min && 
+                    filterValue.range.max === valueRange.max;
+                
+                // Only show range tag if it's not the full range
+                if (!isFullRange) {
+                    let rangeText = '';
+                    let minDisplay = filterValue.range.min !== undefined ? formatValue(filterValue.range.min, field) : formatValue(valueRange?.min || 0, field);
+                    let maxDisplay = filterValue.range.max !== undefined ? formatValue(filterValue.range.max, field) : formatValue(valueRange?.max || 0, field);
+                    
+                    rangeText = `${minDisplay} - ${maxDisplay}`;
+                    
+                    tag.innerHTML = `
+                        ${title}: ${rangeText}
+                        <span class="remove-range-tag" data-key="${key}">×</span>
+                    `;
+                    tag.querySelector('.remove-range-tag').addEventListener('click', () => {
+                        if (state.filters[key].exact && state.filters[key].exact.length > 0) {
+                            // Keep exact values, just remove range
+                            state.filters[key].range = {};
+                        } else {
+                            // Remove entire filter
+                            delete state.filters[key];
+                        }
+                        updateTableFilters();
+                        renderActiveFilters();
+                        updateNoFiltersMessage();
+                    });
+                    container.appendChild(tag);
+                }
+            }
+            
+            // Handle exact values
+            if (filterValue.exact && filterValue.exact.length > 0) {
+                filterValue.exact.forEach(val => {
+                    const tag = document.createElement('div');
+                    tag.className = 'filter-tag';
+                    let displayVal = formatValue(val, field);
+                    
+                    tag.innerHTML = `
+                        ${title}: ${displayVal}
+                        <span class="remove-exact-tag" data-key="${key}" data-val="${val}">×</span>
+                    `;
+                    tag.querySelector('.remove-exact-tag').addEventListener('click', () => {
+                        state.filters[key].exact = state.filters[key].exact.filter(v => v !== val);
+                        if (state.filters[key].exact.length === 0 && 
+                            (!state.filters[key].range || 
+                             (!state.filters[key].range.min && !state.filters[key].range.max))) {
+                            delete state.filters[key];
+                        }
+                        updateTableFilters();
+                        renderActiveFilters();
+                        updateNoFiltersMessage();
+                    });
+                    container.appendChild(tag);
+                });
+            }
+        }
+    });
+    
+    return hasFilters;
+}
+
+// Update the filtering logic to properly handle the full range case
+function updateTableFilters(redraw = true) {
+    $.fn.dataTable.ext.search = [];
+
+    $.fn.dataTable.ext.search.push((settings, data, dataIndex) => {
+        const row = state.data[dataIndex];
+        for (let key in state.filters) {
+            if (!state.filters[key]) continue;
+            
+            const field = config.fields.find(f => f.key === key);
+            const filterValue = state.filters[key];
+            
+            if (field && (field.filter === 'numeric' || field.filter === 'currency' || field.filter === 'date')) {
+                // Handle numeric/currency/date filters
+                if (filterValue.range || filterValue.exact) {
+                    let cellValue;
+                    
+                    // Handle date fields properly
+                    if (field.format === 'date') {
+                        const date = new Date(row[key]);
+                        cellValue = isNaN(date.getTime()) ? NaN : date.getTime();
+                    } else {
+                        cellValue = parseFloat(row[key]);
+                    }
+                    
+                    if (isNaN(cellValue)) {
+                        return false;
+                    }
+                    
+                    // Check range constraints
+                    if (filterValue.range && (filterValue.range.min !== undefined || filterValue.range.max !== undefined)) {
+                        // Get the actual data range for comparison
+                        const valueRange = getFieldValueRange(field);
+                        const isFullRange = valueRange && 
+                            (filterValue.range.min === undefined || filterValue.range.min === valueRange.min) && 
+                            (filterValue.range.max === undefined || filterValue.range.max === valueRange.max);
+                        
+                        // If it's not the full range, apply the filter
+                        if (!isFullRange) {
+                            if (filterValue.range.min !== undefined && cellValue < filterValue.range.min) {
+                                return false;
+                            }
+                            if (filterValue.range.max !== undefined && cellValue > filterValue.range.max) {
+                                return false;
+                            }
+                        }
+                    }
+                    
+                    // Check exact values
+                    if (filterValue.exact && filterValue.exact.length > 0) {
+                        // If we have exact values, the value must either match an exact value OR be within range
+                        const matchesExact = filterValue.exact.includes(cellValue);
+                        const matchesRange = (!filterValue.range || 
+                            ((!filterValue.range.min || cellValue >= filterValue.range.min) &&
+                             (!filterValue.range.max || cellValue <= filterValue.range.max)));
+                        
+                        if (!matchesExact && !matchesRange) {
+                            return false;
+                        }
+                    }
+                }
+            } else if (Array.isArray(filterValue)) {
+                // Handle array-based filters (select, multi-label, text)
+                if (filterValue.length === 0) continue;
+                
+                if (field && field.filter === 'multi-label') {
+                    // For multi-label fields, check if any selected filter values are present
+                    const cellVal = String(row[key] || '');
+                    const cellLabels = cellVal.split(',').map(label => label.trim());
+                    
+                    // Check if any of the selected filters match any of the cell's labels
+                    const hasMatch = filterValue.some(filterVal => 
+                        cellLabels.some(cellLabel => cellLabel.toLowerCase().includes(filterVal.toLowerCase()))
+                    );
+                    
+                    if (!hasMatch) {
+                        return false;
+                    }
+                } else {
+                    // Standard filtering for other types
+                    const cellVal = String(row[key] || '').toLowerCase();
+                    if (!filterValue.some(f => cellVal.includes(f.toLowerCase()))) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    });
+
+    if (redraw) {
+        state.table.draw();
+        updateStats();
     }
+}
     
     function updateNoFiltersMessage() {
         const noFiltersMsg = document.getElementById('no-filters-message');
-        const hasActiveFilters = Object.values(state.filters).some(vals => vals && vals.length > 0);
+        const hasActiveFilters = Object.values(state.filters).some(filterValue => {
+            if (Array.isArray(filterValue)) {
+                return filterValue.length > 0;
+            } else if (filterValue && typeof filterValue === 'object') {
+                return (filterValue.range && (filterValue.range.min !== undefined || filterValue.range.max !== undefined)) ||
+                       (filterValue.exact && filterValue.exact.length > 0);
+            }
+            return false;
+        });
         
         if (noFiltersMsg) {
             noFiltersMsg.style.display = hasActiveFilters ? 'none' : 'block';
@@ -598,38 +1109,91 @@
     function getVisibleData() {
         // If no filters are applied, return all data
         if (Object.keys(state.filters).length === 0 || 
-            !Object.values(state.filters).some(arr => arr && arr.length > 0)) {
+            !Object.values(state.filters).some(filterValue => {
+                if (Array.isArray(filterValue)) {
+                    return filterValue.length > 0;
+                } else if (filterValue && typeof filterValue === 'object') {
+                    return (filterValue.range && (filterValue.range.min !== undefined || filterValue.range.max !== undefined)) ||
+                           (filterValue.exact && filterValue.exact.length > 0);
+                }
+                return false;
+            })) {
             return state.data;
         }
 
         // Otherwise, apply filters manually
         return state.data.filter(row => {
             for (let key in state.filters) {
-                const filterVals = state.filters[key];
+                const filterValue = state.filters[key];
                 
-                // Skip empty filter arrays
-                if (!filterVals || filterVals.length === 0) continue;
+                // Skip empty filter arrays or objects
+                if (!filterValue) continue;
                 
                 const field = config.fields.find(f => f.key === key);
                 
-                if (field && field.filter === 'multi-label') {
-                    // For multi-label fields, check if any selected filter values are present
-                    const cellVal = String(row[key] || '');
-                    const cellLabels = cellVal.split(',').map(label => label.trim());
-                    
-                    // Check if any of the selected filters match any of the cell's labels
-                    const hasMatch = filterVals.some(filterVal => 
-                        cellLabels.some(cellLabel => cellLabel.toLowerCase().includes(filterVal.toLowerCase()))
-                    );
-                    
-                    if (!hasMatch) {
-                        return false;
+                if (field && (field.filter === 'numeric' || field.filter === 'currency' || field.filter === 'date')) {
+                    // Handle numeric/currency/date filters
+                    if (filterValue.range || filterValue.exact) {
+                        let cellValue;
+                        
+                        // Handle date fields properly
+                        if (field.format === 'date') {
+                            const date = new Date(row[key]);
+                            cellValue = isNaN(date.getTime()) ? NaN : date.getTime();
+                        } else {
+                            cellValue = parseFloat(row[key]);
+                        }
+                        
+                        if (isNaN(cellValue)) {
+                            return false;
+                        }
+                        
+                        // Check range constraints
+                        if (filterValue.range) {
+                            if (filterValue.range.min !== undefined && cellValue < filterValue.range.min) {
+                                return false;
+                            }
+                            if (filterValue.range.max !== undefined && cellValue > filterValue.range.max) {
+                                return false;
+                            }
+                        }
+                        
+                        // Check exact values
+                        if (filterValue.exact && filterValue.exact.length > 0) {
+                            // If we have exact values, the value must either match an exact value OR be within range
+                            const matchesExact = filterValue.exact.includes(cellValue);
+                            const matchesRange = (!filterValue.range || 
+                                ((!filterValue.range.min || cellValue >= filterValue.range.min) &&
+                                 (!filterValue.range.max || cellValue <= filterValue.range.max)));
+                            
+                            if (!matchesExact && !matchesRange) {
+                                return false;
+                            }
+                        }
                     }
-                } else {
-                    // Standard filtering for other types
-                    const cellVal = String(row[key] || '').toLowerCase();
-                    if (!filterVals.some(f => cellVal.includes(f.toLowerCase()))) {
-                        return false;
+                } else if (Array.isArray(filterValue)) {
+                    // Handle array-based filters
+                    if (filterValue.length === 0) continue;
+                    
+                    if (field && field.filter === 'multi-label') {
+                        // For multi-label fields, check if any selected filter values are present
+                        const cellVal = String(row[key] || '');
+                        const cellLabels = cellVal.split(',').map(label => label.trim());
+                        
+                        // Check if any of the selected filters match any of the cell's labels
+                        const hasMatch = filterValue.some(filterVal => 
+                            cellLabels.some(cellLabel => cellLabel.toLowerCase().includes(filterVal.toLowerCase()))
+                        );
+                        
+                        if (!hasMatch) {
+                            return false;
+                        }
+                    } else {
+                        // Standard filtering for other types
+                        const cellVal = String(row[key] || '').toLowerCase();
+                        if (!filterValue.some(f => cellVal.includes(f.toLowerCase()))) {
+                            return false;
+                        }
                     }
                 }
             }
