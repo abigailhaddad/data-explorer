@@ -312,7 +312,6 @@ console.log('Config:', window.DATASET_CONFIG);
                         <div class="mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <label class="form-label fw-semibold">Range Filter</label>
-                                <small class="text-muted">${formatValue(valueRange.min, field)} - ${formatValue(valueRange.max, field)}</small>
                             </div>
                             
                             <div class="range-slider">
