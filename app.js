@@ -81,6 +81,13 @@
                     return '<span class="text-muted fst-italic">—</span>';
                 }
                 
+                // Handle multi-label fields (skills, certifications, etc.)
+                if (field.format === 'multi-label') {
+                    // Split by comma, trim whitespace, and create badges
+                    const items = data.split(',').map(item => item.trim()).filter(item => item);
+                    return items.map(item => `<span class="badge bg-secondary me-1 mb-1">${item}</span>`).join('');
+                }
+                
                 // Handle currency formatting
                 if (field.format === 'currency') {
                     return `<span class="fw-medium">$${Number(data).toLocaleString()}</span>`;
@@ -194,6 +201,44 @@
                     <button type="button" class="btn btn-sm btn-outline-secondary ms-2 deselect-all">Deselect All</button>
                 </div>
             `;
+        } else if (field.filter === 'multi-label') {
+            // Extract all unique labels from all rows
+            const allLabels = new Set();
+            state.data.forEach(row => {
+                if (row[field.key]) {
+                    row[field.key].split(',').forEach(label => {
+                        allLabels.add(label.trim());
+                    });
+                }
+            });
+            const sortedLabels = Array.from(allLabels).sort();
+            
+            bodyContent = `
+                <div class="mb-3">
+                    <input type="text" class="form-control form-control-sm" id="multi-label-filter-search" 
+                           placeholder="Search skills...">
+                </div>
+                <div class="multi-label-info mb-3">
+                    <div class="alert alert-info">
+                        <small><i class="bi bi-info-circle me-2"></i>Select the skills you want to filter by. Results will show people who have <strong>any</strong> of the selected skills.</small>
+                    </div>
+                </div>
+                <div class="select-options-container">
+                    ${sortedLabels.map(label => `
+                        <div class="form-check checkbox-item">
+                            <input class="form-check-input" type="checkbox" id="check-${label.replace(/\s+/g, '-')}" 
+                                   value="${label}" ${existing.includes(label) ? 'checked' : ''}>
+                            <label class="form-check-label" for="check-${label.replace(/\s+/g, '-')}">
+                                ${label}
+                            </label>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="select-actions mt-3">
+                    <button type="button" class="btn btn-sm btn-outline-secondary select-all">Select All</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary ms-2 deselect-all">Deselect All</button>
+                </div>
+            `;
         } else {
             bodyContent = `
                 <div class="mb-3">
@@ -239,6 +284,8 @@
         modal.addEventListener('shown.bs.modal', function () {
             const inputField = field.filter === 'select' 
                 ? document.getElementById('select-filter-search')
+                : field.filter === 'multi-label'
+                ? document.getElementById('multi-label-filter-search')
                 : document.getElementById('free-text-filter');
             
             if (inputField) {
@@ -246,9 +293,10 @@
             }
         });
 
-        // Set up select filter search
-        if (field.filter === 'select') {
-            const searchInput = modal.querySelector('#select-filter-search');
+        // Set up search for select and multi-label filters
+        if (field.filter === 'select' || field.filter === 'multi-label') {
+            const searchInputId = field.filter === 'select' ? 'select-filter-search' : 'multi-label-filter-search';
+            const searchInput = modal.querySelector(`#${searchInputId}`);
             const options = modal.querySelectorAll('.checkbox-item');
             
             // Set up search functionality
@@ -330,7 +378,7 @@
         }
 
         modal.querySelector('.apply-filter').addEventListener('click', () => {
-            if (field.filter === 'select') {
+            if (field.filter === 'select' || field.filter === 'multi-label') {
                 const checked = modal.querySelectorAll('input[type=checkbox]:checked');
                 state.filters[field.key] = Array.from(checked).map(cb => cb.value);
             }
@@ -350,9 +398,27 @@
                 if (!state.filters[key] || state.filters[key].length === 0) continue;
                 
                 const filterVals = state.filters[key];
-                const cellVal = String(row[key] || '').toLowerCase();
-                if (!filterVals.some(f => cellVal.includes(f.toLowerCase()))) {
-                    return false;
+                const field = config.fields.find(f => f.key === key);
+                
+                if (field && field.filter === 'multi-label') {
+                    // For multi-label fields, check if any selected filter values are present
+                    const cellVal = String(row[key] || '');
+                    const cellLabels = cellVal.split(',').map(label => label.trim());
+                    
+                    // Check if any of the selected filters match any of the cell's labels
+                    const hasMatch = filterVals.some(filterVal => 
+                        cellLabels.some(cellLabel => cellLabel.toLowerCase().includes(filterVal.toLowerCase()))
+                    );
+                    
+                    if (!hasMatch) {
+                        return false;
+                    }
+                } else {
+                    // Standard filtering for other types
+                    const cellVal = String(row[key] || '').toLowerCase();
+                    if (!filterVals.some(f => cellVal.includes(f.toLowerCase()))) {
+                        return false;
+                    }
                 }
             }
             return true;
@@ -374,7 +440,8 @@
             if (!values || values.length === 0) return;
             
             hasFilters = true;
-            const title = config.fields.find(f => f.key === key)?.title || key;
+            const field = config.fields.find(f => f.key === key);
+            const title = field?.title || key;
             
             values.forEach(val => {
                 const tag = document.createElement('div');
@@ -456,7 +523,7 @@
                     }
                     
                     if (stat.format === 'currency') {
-                        formattedValue = `$${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+                        formattedValue = `${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
                     } else {
                         formattedValue = value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
                     }
@@ -474,7 +541,7 @@
                     }
                     
                     if (stat.format === 'currency') {
-                        formattedValue = `$${value.toLocaleString()}`;
+                        formattedValue = `${value.toLocaleString()}`;
                     } else {
                         formattedValue = value.toLocaleString();
                     }
@@ -492,7 +559,7 @@
                     }
                     
                     if (stat.format === 'currency') {
-                        formattedValue = `$${value.toLocaleString()}`;
+                        formattedValue = `${value.toLocaleString()}`;
                     } else {
                         formattedValue = value.toLocaleString();
                     }
@@ -510,7 +577,7 @@
                     }
                     
                     if (stat.format === 'currency') {
-                        formattedValue = `$${value.toLocaleString()}`;
+                        formattedValue = `${value.toLocaleString()}`;
                     } else {
                         formattedValue = value.toLocaleString();
                     }
@@ -543,9 +610,27 @@
                 // Skip empty filter arrays
                 if (!filterVals || filterVals.length === 0) continue;
                 
-                const cellVal = String(row[key] || '').toLowerCase();
-                if (!filterVals.some(f => cellVal.includes(f.toLowerCase()))) {
-                    return false;
+                const field = config.fields.find(f => f.key === key);
+                
+                if (field && field.filter === 'multi-label') {
+                    // For multi-label fields, check if any selected filter values are present
+                    const cellVal = String(row[key] || '');
+                    const cellLabels = cellVal.split(',').map(label => label.trim());
+                    
+                    // Check if any of the selected filters match any of the cell's labels
+                    const hasMatch = filterVals.some(filterVal => 
+                        cellLabels.some(cellLabel => cellLabel.toLowerCase().includes(filterVal.toLowerCase()))
+                    );
+                    
+                    if (!hasMatch) {
+                        return false;
+                    }
+                } else {
+                    // Standard filtering for other types
+                    const cellVal = String(row[key] || '').toLowerCase();
+                    if (!filterVals.some(f => cellVal.includes(f.toLowerCase()))) {
+                        return false;
+                    }
                 }
             }
             return true;

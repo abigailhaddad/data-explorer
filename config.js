@@ -42,6 +42,13 @@ window.DATASET_CONFIG = {
             filter: 'text', 
             visible: true 
         },
+        {
+            key: 'skills',
+            title: 'Skills',
+            filter: 'multi-label',
+            format: 'multi-label',
+            visible: true
+        },
         { 
             key: 'salary',       
             title: 'Salary',       
