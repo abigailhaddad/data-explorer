@@ -387,7 +387,7 @@
     }
 
     // Apply theme when DOM is loaded
-    document.addEventListener('DOMContentLoaded', applyTheme);
+    document.addEventListener('DOMContentLoaded', applyTheme); a
     
     // Export for manual theme changes
     window.applyTheme = applyTheme;
