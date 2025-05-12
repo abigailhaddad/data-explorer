@@ -76,12 +76,64 @@ project_templates = [
     "Spearheading the {project_name} with expected completion in {timeline}."
 ]
 
-# Skills data
-tech_skills = ['Python', 'JavaScript', 'React', 'Angular', 'Node.js', 'AWS', 'Docker', 'Kubernetes', 
-              'SQL', 'NoSQL', 'Data Analysis', 'Machine Learning', 'CI/CD', 'Git', 'Cloud Architecture']
+# Comprehensive skills list - expanded for better variety
+all_skills = [
+    # Technical Skills
+    'Python', 'JavaScript', 'React', 'Angular', 'Vue.js', 'Node.js', 'Express.js', 'Django', 'Flask',
+    'Java', 'Spring', 'C++', 'C#', '.NET', 'PHP', 'Laravel', 'Ruby', 'Ruby on Rails', 'Go',
+    
+    # Cloud & Infrastructure
+    'AWS', 'Azure', 'Google Cloud', 'Docker', 'Kubernetes', 'Terraform', 'Jenkins', 'GitLab CI',
+    'CircleCI', 'Travis CI', 'Ansible', 'Puppet', 'Chef',
+    
+    # Databases
+    'SQL', 'MySQL', 'PostgreSQL', 'MongoDB', 'Redis', 'Elasticsearch', 'Cassandra', 'Oracle',
+    'SQL Server', 'DynamoDB',
+    
+    # Data & Analytics
+    'Data Analysis', 'Machine Learning', 'Deep Learning', 'TensorFlow', 'PyTorch', 'Scikit-learn',
+    'Pandas', 'NumPy', 'R', 'Tableau', 'Power BI', 'Spark', 'Hadoop', 'Apache Airflow',
+    
+    # Design & Frontend
+    'UI/UX Design', 'Photoshop', 'Illustrator', 'Sketch', 'Figma', 'InVision', 'HTML', 'CSS',
+    'Sass', 'Bootstrap', 'Tailwind CSS', 'Material Design',
+    
+    # Project Management & Methodology
+    'Agile', 'Scrum', 'Kanban', 'Jira', 'Confluence', 'Monday.com', 'Asana', 'Trello',
+    'Project Management', 'Team Leadership', 'Sprint Planning',
+    
+    # Business & Communication
+    'Business Analysis', 'Strategic Planning', 'Public Speaking', 'Technical Writing',
+    'Content Creation', 'SEO', 'SEM', 'Google Analytics', 'A/B Testing', 'Market Research',
+    
+    # Soft Skills
+    'Leadership', 'Communication', 'Problem Solving', 'Team Collaboration', 'Time Management',
+    'Critical Thinking', 'Adaptability', 'Creativity', 'Conflict Resolution', 'Mentoring',
+    'Customer Service', 'Negotiation', 'Presentation Skills', 'Change Management',
+    
+    # Security
+    'Information Security', 'Penetration Testing', 'Cybersecurity', 'Network Security',
+    'Compliance', 'GDPR', 'SOX', 'HIPAA', 'ISO 27001',
+    
+    # Sales & Marketing
+    'Salesforce', 'HubSpot', 'Lead Generation', 'Customer Acquisition', 'Sales Funnel Optimization',
+    'Digital Marketing', 'Social Media Marketing', 'Email Marketing', 'PPC', 'Conversion Optimization'
+]
 
-soft_skills = ['Leadership', 'Communication', 'Problem Solving', 'Team Collaboration', 'Time Management',
-              'Critical Thinking', 'Adaptability', 'Creativity', 'Project Management', 'Conflict Resolution']
+# Skills by department to make it more realistic
+department_skills = {
+    'Engineering': ['Python', 'JavaScript', 'React', 'Node.js', 'Docker', 'Kubernetes', 'AWS', 'Git', 'SQL', 'MongoDB', 'CI/CD', 'Agile', 'TensorFlow', 'Machine Learning'],
+    'Marketing': ['Google Analytics', 'SEO', 'SEM', 'Content Creation', 'Social Media Marketing', 'Email Marketing', 'A/B Testing', 'Photoshop', 'Canva', 'HubSpot', 'WordPress', 'Copywriting'],
+    'Sales': ['Salesforce', 'Customer Acquisition', 'Lead Generation', 'Negotiation', 'CRM', 'Sales Funnel Optimization', 'Prospecting', 'Presentation Skills', 'Account Management', 'Territory Management'],
+    'Finance': ['Excel', 'SQL', 'Financial Modeling', 'QuickBooks', 'SAP', 'Power BI', 'Tableau', 'Risk Management', 'Budget Planning', 'Financial Analysis', 'Accounting', 'Auditing'],
+    'Human Resources': ['HRIS', 'Workday', 'BambooHR', 'Recruiting', 'Performance Management', 'Compensation Analysis', 'Employee Relations', 'Training Development', 'Diversity & Inclusion', 'Change Management'],
+    'Product Management': ['Jira', 'Confluence', 'User Research', 'Roadmap Planning', 'A/B Testing', 'Analytics', 'Wireframing', 'Agile', 'Scrum', 'Product Strategy', 'Market Research'],
+    'Customer Support': ['Zendesk', 'Freshdesk', 'Intercom', 'Customer Service', 'Technical Support', 'Troubleshooting', 'Empathy', 'Communication', 'Patience', 'Product Knowledge'],
+    'Research & Development': ['R', 'Python', 'Statistics', 'Hypothesis Testing', 'Research Design', 'Data Analysis', 'SPSS', 'SAS', 'Laboratory Management', 'Patent Research'],
+    'Operations': ['Process Improvement', 'Six Sigma', 'Lean', 'Project Management', 'Supply Chain Management', 'Vendor Management', 'Quality Assurance', 'Continuous Improvement'],
+    'Legal': ['Contract Review', 'Legal Research', 'Intellectual Property', 'Compliance', 'Risk Assessment', 'Litigation Support', 'Legal Writing', 'Negotiation'],
+    'Information Technology': ['Network Administration', 'System Administration', 'Active Directory', 'Windows Server', 'Linux', 'VMware', 'Help Desk', 'Asset Management', 'Backup Solutions']
+}
 
 # Generate employees data
 employees = []
@@ -112,12 +164,20 @@ for i in range(1, NUM_RECORDS + 1):
     salary_multiplier = salary_factor.get(seniority, 1.0)
     salary = int(salary_base * salary_multiplier)
     
-    # Generate employee skills
-    skills = []
-    if department in ['Engineering', 'Information Technology', 'Research & Development']:
-        skills = random.sample(tech_skills, k=random.randint(3, 6))
-    else:
-        skills = random.sample(soft_skills, k=random.randint(3, 5))
+    # Generate employee skills - mix of department-specific and general skills
+    dept_skills = department_skills.get(department, [])
+    general_skills = [skill for skill in all_skills if skill not in dept_skills]
+    
+    # Pick 3-5 department skills and 1-3 general skills
+    dept_skill_count = random.randint(3, min(5, len(dept_skills)))
+    general_skill_count = random.randint(1, 3)
+    
+    selected_dept_skills = random.sample(dept_skills, k=dept_skill_count)
+    selected_general_skills = random.sample(general_skills, k=general_skill_count)
+    
+    # Combine and format as comma-separated string
+    all_selected_skills = selected_dept_skills + selected_general_skills
+    skills_str = ", ".join(sorted(all_selected_skills))
     
     # Performance data
     last_review_date = fake.date_between(start_date='-1y', end_date='today')
@@ -129,11 +189,11 @@ for i in range(1, NUM_RECORDS + 1):
         rating=performance.lower(),
         employee=first_name,
         project_type=random.choice(['client', 'internal', 'strategic', 'technical']),
-        skill=random.choice(skills),
-        improvement_area=random.choice(soft_skills),
+        skill=random.choice(all_selected_skills),
+        improvement_area=random.choice(['communication', 'time management', 'delegation', 'strategic thinking']),
         project_count=random.randint(2, 8),
-        strength=f"Excels at {random.choice(skills)}",
-        weakness=f"needs development in {random.choice(soft_skills)}",
+        strength=f"Excels at {random.choice(all_selected_skills)}",
+        weakness=f"needs development in {random.choice(['communication', 'leadership', 'technical expertise', 'strategic thinking'])}",
         quality=random.choice(['initiative', 'attention to detail', 'strategic thinking', 'technical expertise']),
         quality2=random.choice(['reliability', 'innovation', 'commitment', 'analytical thinking'])
     )
@@ -148,7 +208,7 @@ for i in range(1, NUM_RECORDS + 1):
         timeline=f"{random.randint(1, 6)} months"
     )
     
-    # Notes field with lorem ipsum (this is the added field)
+    # Notes field with lorem ipsum
     notes_paragraphs = random.randint(1, 3)
     notes = " ".join([fake.paragraph(nb_sentences=random.randint(3, 6)) for _ in range(notes_paragraphs)])
     
@@ -164,13 +224,15 @@ for i in range(1, NUM_RECORDS + 1):
         "joined": start_date.strftime("%Y-%m-%d"),
         "status": status,
         "status_class": status_class,
-        "notes": notes  # Added notes field
+        "skills": skills_str,  # Added skills field as comma-separated string
+        "notes": notes
     }
     
     employees.append(employee)
 
-# Save the data to data.json instead of employee_data.json
+# Save the data to data.json
 with open('data.json', 'w') as f:
     json.dump(employees, f, indent=2)
 
-print(f"Generated {NUM_RECORDS} employee records with notes field and saved to data.json")
+print(f"Generated {NUM_RECORDS} employee records with skills field and saved to data.json")
+print(f"Sample skills from first employee: {employees[0]['skills']}")
