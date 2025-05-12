@@ -120,6 +120,7 @@
 .table th {
     padding: 0.75rem;
     border-bottom: 2px solid #dee2e6;
+    position: relative;
 }
 
 /* Custom styles for badges in table */
@@ -153,4 +154,86 @@
     color: #6c757d;
     font-size: 0.875rem;
     margin-bottom: 0;
+}
+
+/* Column header filter button styling */
+.column-filter-btn {
+    background: none;
+    border: none;
+    padding: 4px 6px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.8);
+    margin-left: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.column-filter-btn i {
+    opacity: 0.6;
+    font-size: 12px;
+}
+
+.column-filter-btn:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+    color: white;
+}
+
+.column-filter-btn:hover i {
+    opacity: 0.9;
+}
+
+.column-filter-btn.active {
+    background-color: var(--accent);
+    color: white;
+}
+
+.column-filter-btn.active i {
+    opacity: 1;
+}
+
+.column-filter-btn.active:hover {
+    background-color: var(--accent);
+    filter: brightness(110%);
+}
+
+/* Make sure column headers are properly aligned */
+.table th {
+    vertical-align: middle;
+    white-space: nowrap;
+    position: relative;
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    min-height: 30px;
+}
+
+.header-text {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Ensure buttons are visible */
+.column-filter-btn {
+    min-width: 24px;
+    min-height: 24px;
+}
+
+/* Responsive adjustments for filter buttons */
+@media (max-width: 768px) {
+    .column-filter-btn {
+        padding: 2px 4px;
+        min-width: 20px;
+        min-height: 20px;
+    }
+    
+    .column-filter-btn i {
+        font-size: 10px;
+    }
 }

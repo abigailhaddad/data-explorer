@@ -239,6 +239,45 @@
                     <button type="button" class="btn btn-sm btn-outline-secondary ms-2 deselect-all">Deselect All</button>
                 </div>
             `;
+        } else if (field.filter === 'numeric' || field.filter === 'currency' || field.filter === 'date') {
+            // Check for existing numeric filters
+            const existingRange = existing.range || {};
+            const existingExact = existing.exact || [];
+            
+            bodyContent = `
+                <div class="mb-4">
+                    <h6 class="fw-semibold">Range Filter</h6>
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <label class="form-label small">Minimum Value</label>
+                            <input type="number" class="form-control" id="min-value" 
+                                   placeholder="Min" value="${existingRange.min || ''}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Maximum Value</label>
+                            <input type="number" class="form-control" id="max-value" 
+                                   placeholder="Max" value="${existingRange.max || ''}">
+                        </div>
+                    </div>
+                    <div class="form-text mt-2">
+                        <i class="bi bi-info-circle me-1"></i>Leave blank to ignore minimum or maximum
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <h6 class="fw-semibold">Exact Values</h6>
+                    <div class="input-group">
+                        <input type="number" class="form-control" id="exact-value-input" 
+                               placeholder="Enter exact value and press Enter or click Add">
+                        <button class="btn btn-outline-primary" type="button" id="add-exact-value">
+                            Add
+                        </button>
+                    </div>
+                    <div class="form-text">Add specific values to include in results</div>
+                </div>
+                
+                <div id="exact-value-tags" class="mb-2"></div>
+            `;
         } else {
             bodyContent = `
                 <div class="mb-3">
@@ -282,11 +321,16 @@
 
         // Focus the input field when modal shows
         modal.addEventListener('shown.bs.modal', function () {
-            const inputField = field.filter === 'select' 
-                ? document.getElementById('select-filter-search')
-                : field.filter === 'multi-label'
-                ? document.getElementById('multi-label-filter-search')
-                : document.getElementById('free-text-filter');
+            let inputField;
+            if (field.filter === 'select') {
+                inputField = document.getElementById('select-filter-search');
+            } else if (field.filter === 'multi-label') {
+                inputField = document.getElementById('multi-label-filter-search');
+            } else if (field.filter === 'numeric' || field.filter === 'currency' || field.filter === 'date') {
+                inputField = document.getElementById('min-value');
+            } else {
+                inputField = document.getElementById('free-text-filter');
+            }
             
             if (inputField) {
                 inputField.focus();
@@ -377,10 +421,103 @@
             }
         }
 
+        // Handle numeric filter setup
+        if (field.filter === 'numeric' || field.filter === 'currency' || field.filter === 'date') {
+            const exactInput = modal.querySelector('#exact-value-input');
+            const addExactButton = modal.querySelector('#add-exact-value');
+            const exactTagContainer = modal.querySelector('#exact-value-tags');
+            
+            // Render existing exact value tags
+            renderExactValueTags(field.key);
+
+            // Add event listeners
+            exactInput.addEventListener('keydown', e => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addExactValue();
+                }
+            });
+            
+            addExactButton.addEventListener('click', addExactValue);
+
+            function addExactValue() {
+                const val = exactInput.value.trim();
+                if (val && !isNaN(val)) {
+                    const numVal = parseFloat(val);
+                    if (!state.filters[field.key]) state.filters[field.key] = { range: {}, exact: [] };
+                    if (!state.filters[field.key].exact) state.filters[field.key].exact = [];
+                    
+                    if (!state.filters[field.key].exact.includes(numVal)) {
+                        state.filters[field.key].exact.push(numVal);
+                        exactInput.value = '';
+                        renderExactValueTags(field.key);
+                        exactInput.focus();
+                    }
+                }
+            }
+
+            function renderExactValueTags(key) {
+                const exact = state.filters[key]?.exact || [];
+                
+                if (!exact.length) {
+                    exactTagContainer.innerHTML = '<div class="text-muted fst-italic">No exact values added yet</div>';
+                    return;
+                }
+                
+                exactTagContainer.innerHTML = exact.map(val => `
+                    <div class="filter-tag">
+                        ${field.format === 'currency' ? '$' + val.toLocaleString() : val}
+                        <span class="remove-exact-tag" data-val="${val}">×</span>
+                    </div>
+                `).join('');
+
+                exactTagContainer.querySelectorAll('.remove-exact-tag').forEach(el => {
+                    el.addEventListener('click', () => {
+                        const valToRemove = parseFloat(el.dataset.val);
+                        state.filters[key].exact = state.filters[key].exact.filter(v => v !== valToRemove);
+                        if (state.filters[key].exact.length === 0 && 
+                            (!state.filters[key].range || 
+                             (!state.filters[key].range.min && !state.filters[key].range.max))) {
+                            delete state.filters[key];
+                        }
+                        renderExactValueTags(key);
+                    });
+                });
+            }
+        }
+
         modal.querySelector('.apply-filter').addEventListener('click', () => {
             if (field.filter === 'select' || field.filter === 'multi-label') {
                 const checked = modal.querySelectorAll('input[type=checkbox]:checked');
                 state.filters[field.key] = Array.from(checked).map(cb => cb.value);
+            } else if (field.filter === 'numeric' || field.filter === 'currency' || field.filter === 'date') {
+                const minVal = modal.querySelector('#min-value').value;
+                const maxVal = modal.querySelector('#max-value').value;
+                
+                // Initialize filter object if it doesn't exist
+                if (!state.filters[field.key]) {
+                    state.filters[field.key] = { range: {}, exact: [] };
+                }
+                
+                // Update range values
+                if (minVal !== '') {
+                    state.filters[field.key].range.min = parseFloat(minVal);
+                } else {
+                    delete state.filters[field.key].range.min;
+                }
+                
+                if (maxVal !== '') {
+                    state.filters[field.key].range.max = parseFloat(maxVal);
+                } else {
+                    delete state.filters[field.key].range.max;
+                }
+                
+                // Clean up empty filters
+                if ((!state.filters[field.key].range || 
+                     (!state.filters[field.key].range.min && !state.filters[field.key].range.max)) &&
+                    (!state.filters[field.key].exact || state.filters[field.key].exact.length === 0)) {
+                    delete state.filters[field.key];
+                }
             }
             bsModal.hide();
             updateTableFilters();
@@ -395,29 +532,66 @@
         $.fn.dataTable.ext.search.push((settings, data, dataIndex) => {
             const row = state.data[dataIndex];
             for (let key in state.filters) {
-                if (!state.filters[key] || state.filters[key].length === 0) continue;
+                if (!state.filters[key]) continue;
                 
-                const filterVals = state.filters[key];
                 const field = config.fields.find(f => f.key === key);
+                const filterValue = state.filters[key];
                 
-                if (field && field.filter === 'multi-label') {
-                    // For multi-label fields, check if any selected filter values are present
-                    const cellVal = String(row[key] || '');
-                    const cellLabels = cellVal.split(',').map(label => label.trim());
-                    
-                    // Check if any of the selected filters match any of the cell's labels
-                    const hasMatch = filterVals.some(filterVal => 
-                        cellLabels.some(cellLabel => cellLabel.toLowerCase().includes(filterVal.toLowerCase()))
-                    );
-                    
-                    if (!hasMatch) {
-                        return false;
+                if (field && (field.filter === 'numeric' || field.filter === 'currency' || field.filter === 'date')) {
+                    // Handle numeric/currency/date filters
+                    if (filterValue.range || filterValue.exact) {
+                        const cellValue = parseFloat(row[key]);
+                        
+                        if (isNaN(cellValue)) {
+                            return false;
+                        }
+                        
+                        // Check range constraints
+                        if (filterValue.range) {
+                            if (filterValue.range.min !== undefined && cellValue < filterValue.range.min) {
+                                return false;
+                            }
+                            if (filterValue.range.max !== undefined && cellValue > filterValue.range.max) {
+                                return false;
+                            }
+                        }
+                        
+                        // Check exact values
+                        if (filterValue.exact && filterValue.exact.length > 0) {
+                            // If we have exact values, the value must either match an exact value OR be within range
+                            const matchesExact = filterValue.exact.includes(cellValue);
+                            const matchesRange = (!filterValue.range || 
+                                ((!filterValue.range.min || cellValue >= filterValue.range.min) &&
+                                 (!filterValue.range.max || cellValue <= filterValue.range.max)));
+                            
+                            if (!matchesExact && !matchesRange) {
+                                return false;
+                            }
+                        }
                     }
-                } else {
-                    // Standard filtering for other types
-                    const cellVal = String(row[key] || '').toLowerCase();
-                    if (!filterVals.some(f => cellVal.includes(f.toLowerCase()))) {
-                        return false;
+                } else if (Array.isArray(filterValue)) {
+                    // Handle array-based filters (select, multi-label, text)
+                    if (filterValue.length === 0) continue;
+                    
+                    if (field && field.filter === 'multi-label') {
+                        // For multi-label fields, check if any selected filter values are present
+                        const cellVal = String(row[key] || '');
+                        const cellLabels = cellVal.split(',').map(label => label.trim());
+                        
+                        // Check if any of the selected filters match any of the cell's labels
+                        const hasMatch = filterValue.some(filterVal => 
+                            cellLabels.some(cellLabel => cellLabel.toLowerCase().includes(filterVal.toLowerCase()))
+                        );
+                        
+                        if (!hasMatch) {
+                            return false;
+                        }
+                    } else {
+                        // Standard filtering for other types
+                        const cellVal = String(row[key] || '').toLowerCase();
+                        if (!filterValue.some(f => cellVal.includes(f.toLowerCase()))) {
+                            return false;
+                        }
                     }
                 }
             }
@@ -436,29 +610,95 @@
 
         let hasFilters = false;
         
-        Object.entries(state.filters).forEach(([key, values]) => {
-            if (!values || values.length === 0) return;
+        Object.entries(state.filters).forEach(([key, filterValue]) => {
+            if (!filterValue) return;
             
             hasFilters = true;
             const field = config.fields.find(f => f.key === key);
             const title = field?.title || key;
             
-            values.forEach(val => {
-                const tag = document.createElement('div');
-                tag.className = 'filter-tag';
-                tag.innerHTML = `
-                    ${title}: ${val}
-                    <span class="remove-tag" data-key="${key}" data-val="${val}">×</span>
-                `;
-                tag.querySelector('.remove-tag').addEventListener('click', () => {
-                    state.filters[key] = state.filters[key].filter(v => v !== val);
-                    if (state.filters[key].length === 0) delete state.filters[key];
-                    updateTableFilters();
-                    renderActiveFilters();
-                    updateNoFiltersMessage();
+            if (Array.isArray(filterValue)) {
+                // Handle array-based filters
+                if (filterValue.length === 0) return;
+                
+                filterValue.forEach(val => {
+                    const tag = document.createElement('div');
+                    tag.className = 'filter-tag';
+                    tag.innerHTML = `
+                        ${title}: ${val}
+                        <span class="remove-tag" data-key="${key}" data-val="${val}">×</span>
+                    `;
+                    tag.querySelector('.remove-tag').addEventListener('click', () => {
+                        state.filters[key] = state.filters[key].filter(v => v !== val);
+                        if (state.filters[key].length === 0) delete state.filters[key];
+                        updateTableFilters();
+                        renderActiveFilters();
+                        updateNoFiltersMessage();
+                    });
+                    container.appendChild(tag);
                 });
-                container.appendChild(tag);
-            });
+            } else if (filterValue.range || filterValue.exact) {
+                // Handle numeric filters
+                if (filterValue.range && (filterValue.range.min !== undefined || filterValue.range.max !== undefined)) {
+                    const tag = document.createElement('div');
+                    tag.className = 'filter-tag';
+                    
+                    let rangeText = '';
+                    if (filterValue.range.min !== undefined && filterValue.range.max !== undefined) {
+                        rangeText = `${filterValue.range.min} - ${filterValue.range.max}`;
+                    } else if (filterValue.range.min !== undefined) {
+                        rangeText = `≥ ${filterValue.range.min}`;
+                    } else {
+                        rangeText = `≤ ${filterValue.range.max}`;
+                    }
+                    
+                    if (field && field.format === 'currency') {
+                        rangeText = rangeText.replace(/\d+/g, match => '$' + parseInt(match).toLocaleString());
+                    }
+                    
+                    tag.innerHTML = `
+                        ${title}: ${rangeText}
+                        <span class="remove-range-tag" data-key="${key}">×</span>
+                    `;
+                    tag.querySelector('.remove-range-tag').addEventListener('click', () => {
+                        if (state.filters[key].exact && state.filters[key].exact.length > 0) {
+                            // Keep exact values, just remove range
+                            state.filters[key].range = {};
+                        } else {
+                            // Remove entire filter
+                            delete state.filters[key];
+                        }
+                        updateTableFilters();
+                        renderActiveFilters();
+                        updateNoFiltersMessage();
+                    });
+                    container.appendChild(tag);
+                }
+                
+                if (filterValue.exact && filterValue.exact.length > 0) {
+                    filterValue.exact.forEach(val => {
+                        const tag = document.createElement('div');
+                        tag.className = 'filter-tag';
+                        const displayVal = field && field.format === 'currency' ? '$' + val.toLocaleString() : val;
+                        tag.innerHTML = `
+                            ${title}: ${displayVal}
+                            <span class="remove-exact-tag" data-key="${key}" data-val="${val}">×</span>
+                        `;
+                        tag.querySelector('.remove-exact-tag').addEventListener('click', () => {
+                            state.filters[key].exact = state.filters[key].exact.filter(v => v !== val);
+                            if (state.filters[key].exact.length === 0 && 
+                                (!state.filters[key].range || 
+                                 (!state.filters[key].range.min && !state.filters[key].range.max))) {
+                                delete state.filters[key];
+                            }
+                            updateTableFilters();
+                            renderActiveFilters();
+                            updateNoFiltersMessage();
+                        });
+                        container.appendChild(tag);
+                    });
+                }
+            }
         });
         
         return hasFilters;
@@ -466,7 +706,15 @@
     
     function updateNoFiltersMessage() {
         const noFiltersMsg = document.getElementById('no-filters-message');
-        const hasActiveFilters = Object.values(state.filters).some(vals => vals && vals.length > 0);
+        const hasActiveFilters = Object.values(state.filters).some(filterValue => {
+            if (Array.isArray(filterValue)) {
+                return filterValue.length > 0;
+            } else if (filterValue && typeof filterValue === 'object') {
+                return (filterValue.range && (filterValue.range.min !== undefined || filterValue.range.max !== undefined)) ||
+                       (filterValue.exact && filterValue.exact.length > 0);
+            }
+            return false;
+        });
         
         if (noFiltersMsg) {
             noFiltersMsg.style.display = hasActiveFilters ? 'none' : 'block';
@@ -598,38 +846,83 @@
     function getVisibleData() {
         // If no filters are applied, return all data
         if (Object.keys(state.filters).length === 0 || 
-            !Object.values(state.filters).some(arr => arr && arr.length > 0)) {
+            !Object.values(state.filters).some(filterValue => {
+                if (Array.isArray(filterValue)) {
+                    return filterValue.length > 0;
+                } else if (filterValue && typeof filterValue === 'object') {
+                    return (filterValue.range && (filterValue.range.min !== undefined || filterValue.range.max !== undefined)) ||
+                           (filterValue.exact && filterValue.exact.length > 0);
+                }
+                return false;
+            })) {
             return state.data;
         }
 
         // Otherwise, apply filters manually
         return state.data.filter(row => {
             for (let key in state.filters) {
-                const filterVals = state.filters[key];
+                const filterValue = state.filters[key];
                 
-                // Skip empty filter arrays
-                if (!filterVals || filterVals.length === 0) continue;
+                // Skip empty filter arrays or objects
+                if (!filterValue) continue;
                 
                 const field = config.fields.find(f => f.key === key);
                 
-                if (field && field.filter === 'multi-label') {
-                    // For multi-label fields, check if any selected filter values are present
-                    const cellVal = String(row[key] || '');
-                    const cellLabels = cellVal.split(',').map(label => label.trim());
-                    
-                    // Check if any of the selected filters match any of the cell's labels
-                    const hasMatch = filterVals.some(filterVal => 
-                        cellLabels.some(cellLabel => cellLabel.toLowerCase().includes(filterVal.toLowerCase()))
-                    );
-                    
-                    if (!hasMatch) {
-                        return false;
+                if (field && (field.filter === 'numeric' || field.filter === 'currency' || field.filter === 'date')) {
+                    // Handle numeric/currency/date filters
+                    if (filterValue.range || filterValue.exact) {
+                        const cellValue = parseFloat(row[key]);
+                        
+                        if (isNaN(cellValue)) {
+                            return false;
+                        }
+                        
+                        // Check range constraints
+                        if (filterValue.range) {
+                            if (filterValue.range.min !== undefined && cellValue < filterValue.range.min) {
+                                return false;
+                            }
+                            if (filterValue.range.max !== undefined && cellValue > filterValue.range.max) {
+                                return false;
+                            }
+                        }
+                        
+                        // Check exact values
+                        if (filterValue.exact && filterValue.exact.length > 0) {
+                            // If we have exact values, the value must either match an exact value OR be within range
+                            const matchesExact = filterValue.exact.includes(cellValue);
+                            const matchesRange = (!filterValue.range || 
+                                ((!filterValue.range.min || cellValue >= filterValue.range.min) &&
+                                 (!filterValue.range.max || cellValue <= filterValue.range.max)));
+                            
+                            if (!matchesExact && !matchesRange) {
+                                return false;
+                            }
+                        }
                     }
-                } else {
-                    // Standard filtering for other types
-                    const cellVal = String(row[key] || '').toLowerCase();
-                    if (!filterVals.some(f => cellVal.includes(f.toLowerCase()))) {
-                        return false;
+                } else if (Array.isArray(filterValue)) {
+                    // Handle array-based filters
+                    if (filterValue.length === 0) continue;
+                    
+                    if (field && field.filter === 'multi-label') {
+                        // For multi-label fields, check if any selected filter values are present
+                        const cellVal = String(row[key] || '');
+                        const cellLabels = cellVal.split(',').map(label => label.trim());
+                        
+                        // Check if any of the selected filters match any of the cell's labels
+                        const hasMatch = filterValue.some(filterVal => 
+                            cellLabels.some(cellLabel => cellLabel.toLowerCase().includes(filterVal.toLowerCase()))
+                        );
+                        
+                        if (!hasMatch) {
+                            return false;
+                        }
+                    } else {
+                        // Standard filtering for other types
+                        const cellVal = String(row[key] || '').toLowerCase();
+                        if (!filterValue.some(f => cellVal.includes(f.toLowerCase()))) {
+                            return false;
+                        }
                     }
                 }
             }
