@@ -307,71 +307,68 @@
         
         // Create CSS variables and DataTables specific styling
         const cssVars = `
-            :root {
-                --bs-primary: ${colorScheme.primary};
-                --bs-primary-rgb: ${colorScheme.primaryRgb};
-                --accent: ${colorScheme.accent};
-                --success: ${colorScheme.success};
-                --warning: ${colorScheme.warning};
-                --info: ${colorScheme.info};
-                --secondary: ${colorScheme.secondary};
-                --danger: ${colorScheme.danger};
-            }
-            
-            /* Override Bootstrap's primary color */
-            .bg-primary {
-                background-color: var(--bs-primary) !important;
-            }
-            
-            .text-primary {
-                color: var(--bs-primary) !important;
-            }
-            
-            /* DataTables column visibility menu styling */
-            .dt-button-collection {
-                background-color: white !important;
-                border: 1px solid #dee2e6 !important;
-                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
-            }
-            
-            .dt-button-collection .dt-button {
-                background-color: transparent !important;
-                border: none !important;
-                color: #374151 !important;
-                padding: 0.5rem 0.75rem !important;
-                margin: 0 !important;
-                width: 100% !important;
-                text-align: left !important;
-                border-radius: 0 !important;
-                font-size: 0.875rem !important;
-            }
-            
-            .dt-button-collection .dt-button:hover {
-                background-color: var(--bs-primary) !important;
-                color: white !important;
-            }
-            
-            .dt-button-collection .dt-button.active {
-                background-color: var(--bs-primary) !important;
-                color: white !important;
-                position: relative;
-            }
-            
-            .dt-button-collection .dt-button.active::after {
-                content: "✓";
-                position: absolute;
-                right: 0.75rem;
-                color: white;
-            }
-            
-            /* Style the dropdown arrow */
-            .dt-button-collection::before {
-                display: none !important;
-            }
-            
-            ${buttonStyle}
-            ${cardStyle}
-        `;
+    :root {
+        --bs-primary: ${colorScheme.primary};
+        --bs-primary-rgb: ${colorScheme.primaryRgb};
+        --accent: ${colorScheme.accent};
+        --success: ${colorScheme.success};
+        --warning: ${colorScheme.warning};
+        --info: ${colorScheme.info};
+        --secondary: ${colorScheme.secondary};
+        --danger: ${colorScheme.danger};
+    }
+
+    .bg-primary {
+        background-color: var(--bs-primary) !important;
+    }
+
+    .text-primary {
+        color: var(--bs-primary) !important;
+    }
+
+    /* Bootstrap + Pagination Overrides */
+    .btn-primary,
+    .btn-primary:active,
+    .btn-primary:focus,
+    .btn-primary.active,
+    .btn-primary:visited,
+    .btn-primary:focus-visible,
+    .btn-check:checked + .btn-primary,
+    .btn-primary:disabled,
+    .btn-primary.disabled {
+        background-color: var(--bs-primary) !important;
+        border-color: var(--bs-primary) !important;
+        color: #fff !important;
+    }
+
+    .btn-primary:hover,
+    .btn-check:checked + .btn-primary:hover {
+        background-color: var(--accent) !important;
+        border-color: var(--accent) !important;
+        color: #fff !important;
+    }
+
+    .page-item.active .page-link,
+    .page-link.active {
+        background-color: var(--bs-primary) !important;
+        border-color: var(--bs-primary) !important;
+        color: #fff !important;
+    }
+
+    .page-link {
+        color: var(--bs-primary) !important;
+        border-color: var(--bs-primary) !important;
+    }
+
+    .page-link:hover {
+        background-color: rgba(var(--bs-primary-rgb), 0.08) !important;
+        color: var(--bs-primary) !important;
+    }
+
+    ${buttonStyle}
+    ${cardStyle}
+`;
+
         
         // Remove existing theme styles to prevent accumulation
         const existingStyle = document.getElementById('theme-styles');
