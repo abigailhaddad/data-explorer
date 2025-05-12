@@ -326,7 +326,7 @@
         color: var(--bs-primary) !important;
     }
 
-    /* Bootstrap + Pagination Overrides */
+    /* Bootstrap + Pagination + Filter Overrides */
     .btn-primary,
     .btn-primary:active,
     .btn-primary:focus,
@@ -345,6 +345,29 @@
     .btn-check:checked + .btn-primary:hover {
         background-color: var(--accent) !important;
         border-color: var(--accent) !important;
+        color: #fff !important;
+    }
+
+    .btn-outline-primary {
+        background-color: transparent !important;
+        border-color: var(--bs-primary) !important;
+        color: var(--bs-primary) !important;
+    }
+
+    .btn-outline-primary:hover,
+    .btn-outline-primary:focus {
+        background-color: var(--bs-primary) !important;
+        border-color: var(--bs-primary) !important;
+        color: #fff !important;
+    }
+
+    .btn-outline-primary.active,
+    .btn-outline-primary:active,
+    .btn-outline-primary.active:focus,
+    .btn-outline-primary.active:hover,
+    .btn-check:checked + .btn-outline-primary {
+        background-color: var(--bs-primary) !important;
+        border-color: var(--bs-primary) !important;
         color: #fff !important;
     }
 
@@ -368,6 +391,7 @@
     ${buttonStyle}
     ${cardStyle}
 `;
+
 
         
         // Remove existing theme styles to prevent accumulation
