@@ -7,13 +7,9 @@ window.DATASET_CONFIG = {
     
     // Theme options (optional)
     theme: {
-        // Choose one of: 'blue', 'teal', 'slate', 'darkblue', 'forest'
-        // Or leave undefined for default purple theme
-        colorScheme: 'darkblue',
-        
-        // Choose one of: 'default', 'rounded', 'flat'
-        // Or leave undefined for default button style
-        buttonStyle: 'rounded'
+        colorScheme: 'slate',
+        buttonStyle: 'flat',
+        cardStyle: 'minimal'
     },
     
     fields: [
