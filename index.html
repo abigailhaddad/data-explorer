@@ -52,23 +52,17 @@
                         </button>
                     </div>
                     <div class="card-body">
-                        <div id="active-filters" class="d-flex flex-wrap mb-3">
-                            <!-- No filters message -->
-                            <div id="no-filters-message" class="text-muted fst-italic w-100 text-center py-2">
-                                No filters applied. Click on a filter button below to begin filtering.
-                            </div>
-                        </div>
-                        <hr class="my-3">
-                        <div class="filter-section">
-                            <label class="form-label fw-medium">Filter by:</label>
-                            <div id="filter-buttons" class="d-flex flex-wrap gap-2">
-                                <!-- Loading placeholder -->
-                                <div class="placeholder-glow">
-                                    <span class="placeholder btn btn-sm rounded-pill" style="width: 80px;"></span>
-                                    <span class="placeholder btn btn-sm rounded-pill ms-2" style="width: 100px;"></span>
-                                    <span class="placeholder btn btn-sm rounded-pill ms-2" style="width: 90px;"></span>
+                        <div class="active-filters-container">
+                            <label class="form-label fw-medium">Active Filters:</label>
+                            <div id="active-filters" class="d-flex flex-wrap mb-3">
+                                <!-- No filters message -->
+                                <div id="no-filters-message" class="text-muted fst-italic w-100 text-center py-2">
+                                    No filters applied. Click the <i class="bi bi-funnel"></i> icon next to any column header to filter.
                                 </div>
                             </div>
+                        </div>
+                        <div id="filter-buttons" class="d-none">
+                            <!-- Filter buttons moved to column headers -->
                         </div>
                     </div>
                 </div>

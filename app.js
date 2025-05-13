@@ -12,6 +12,42 @@ console.log('Config:', window.DATASET_CONFIG);
         setupEventListeners();
         setPageTitle();
         loadData();
+        
+        // Add MutationObserver to handle DataTables' dynamic button creation
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.addedNodes.length) {
+                    // Check if any buttons are added to the DOM
+                    for (let i = 0; i < mutation.addedNodes.length; i++) {
+                        const node = mutation.addedNodes[i];
+                        if (node.classList && node.classList.contains('dt-button-collection')) {
+                            // When the column visibility dropdown appears, update button states
+                            setTimeout(function() {
+                                // Clear all active classes first
+                                $('.dt-button-collection .dt-button').removeClass('active');
+                                
+                                // Then add active class only to visible columns
+                                state.table.columns().every(function(idx) {
+                                    if (this.visible()) {
+                                        const field = config.fields[idx];
+                                        if (field) {
+                                            $('.dt-button-collection .dt-button').each(function() {
+                                                if ($(this).text().trim() === field.title) {
+                                                    $(this).addClass('active');
+                                                }
+                                            });
+                                        }
+                                    }
+                                });
+                            }, 0);
+                        }
+                    }
+                }
+            });
+        });
+        
+        // Start observing the document for button additions
+        observer.observe(document.body, { childList: true, subtree: true });
     });
 
     function setPageTitle() {
@@ -147,30 +183,159 @@ console.log('Config:', window.DATASET_CONFIG);
                 zeroRecords: "No matching records found",
                 emptyTable: "No data available"
             },
+            stateSave: false, // Don't save state between page reloads
+            // This ensures each column has a matching name that can be used for selection
+            columnDefs: config.fields.map((field, idx) => ({
+                targets: idx,
+                name: field.key,
+                className: field.filter ? 'has-filter' : ''
+            })),
             buttons: [
                 {
                     extend: 'colvis',
                     text: 'Show/Hide Columns',
                     className: 'btn btn-sm btn-primary text-white',
-                    columns: ':not(.noVis)'
+                    columns: ':not(.noVis)',
+                    // Remove custom columnText function to prevent checkmarks
                 }
-            ]
+            ],
+            // Add custom filter icons to headers after initialization
+            initComplete: function() {
+                // Add filter buttons to the table headers
+                this.api().columns().every(function(index) {
+                    const column = this;
+                    const fieldKey = config.fields[index]?.key;
+                    const field = config.fields.find(f => f.key === fieldKey);
+                    
+                    // Skip if this field doesn't have a filter
+                    if (!field || !field.filter) return;
+                    
+                    // Get the header cell
+                    const headerCell = $(column.header());
+                    
+                    // Create filter button
+                    const filterBtn = $('<button class="column-filter-btn"><i class="bi bi-funnel"></i></button>');
+                    
+                    // Add button to header
+                    headerCell.css('position', 'relative');
+                    headerCell.append(filterBtn);
+                    
+                    // Set active class if there's a filter
+                    if (state.filters[field.key]) {
+                        filterBtn.addClass('active');
+                    }
+                    
+                    // Set up click handler
+                    filterBtn.on('click', function(e) {
+                        e.stopPropagation();
+                        showFilterModal(field);
+                    });
+                });
+            }
+        });
+        
+        // Add event handler for the column visibility button
+        $(document).on('click', '.dt-button.buttons-colvis', function() {
+            // Update button states after the dropdown is shown
+            setTimeout(function() {
+                // First clear all active classes
+                $('.dt-button-collection .dt-button').removeClass('active');
+                
+                // Then set active class for visible columns only
+                state.table.columns().every(function(index) {
+                    const column = this;
+                    const visible = column.visible();
+                    const fieldKey = config.fields[index]?.key;
+                    const field = config.fields.find(f => f.key === fieldKey);
+                    
+                    if (field && visible) {
+                        // Find the button for this column
+                        $('.dt-button-collection .dt-button').each(function() {
+                            const button = $(this);
+                            const buttonText = button.text().trim();
+                            if (buttonText === field.title) {
+                                button.addClass('active');
+                            }
+                        });
+                    }
+                });
+            }, 50);
+        });
+        
+        // Add listener for column visibility changes 
+        state.table.on('column-visibility.dt', function(e, settings, column, visible) {
+            // Re-run our filter button logic after a short delay
+            setTimeout(function() {
+                // Get the column that changed
+                const dtColumn = settings.aoColumns[column];
+                const fieldKey = dtColumn.name;
+                const field = config.fields.find(f => f.key === fieldKey);
+                
+                if (field && field.filter) {
+                    // Get the header cell for this column
+                    const headerCell = $(settings.aoColumns[column].nTh);
+                    
+                    if (visible) { // Column is now visible
+                        // Create new filter button if needed
+                        if (headerCell.find('.column-filter-btn').length === 0) {
+                            const filterBtn = $('<button class="column-filter-btn"><i class="bi bi-funnel"></i></button>');
+                            headerCell.append(filterBtn);
+                            
+                            // Set active class if there's a filter
+                            if (state.filters[field.key]) {
+                                filterBtn.addClass('active');
+                            }
+                            
+                            // Set up click handler
+                            filterBtn.on('click', function(e) {
+                                e.stopPropagation();
+                                showFilterModal(field);
+                            });
+                        }
+                    } else {
+                        // Remove filter button when column is hidden
+                        headerCell.find('.column-filter-btn').remove();
+                    }
+                }
+                
+                // Update the visibility dropdown if it's open
+                if ($('.dt-button-collection').length) {
+                    // First clear all active classes
+                    $('.dt-button-collection .dt-button').removeClass('active');
+                    
+                    // Then set active class for visible columns only
+                    state.table.columns().every(function(colIdx) {
+                        const col = this;
+                        const isVis = col.visible();
+                        const fieldId = config.fields[colIdx]?.key;
+                        const fld = config.fields.find(f => f.key === fieldId);
+                        
+                        if (fld && isVis) {
+                            // Find the button for this column
+                            $('.dt-button-collection .dt-button').each(function() {
+                                const btn = $(this);
+                                const btnText = btn.text().trim();
+                                if (btnText === fld.title) {
+                                    btn.addClass('active');
+                                }
+                            });
+                        }
+                    });
+                }
+            }, 50);
         });
     }
 
     function createFilterButtons() {
+        // The filter section in the sidebar is now only for showing active filters
         const container = document.getElementById('filter-buttons');
         container.innerHTML = '';
-
-        config.fields.forEach(field => {
-            if (!field.filter) return;
-
-            const btn = document.createElement('button');
-            btn.className = 'btn btn-sm btn-outline-primary me-2 mb-2';
-            btn.textContent = field.title;
-            btn.addEventListener('click', () => showFilterModal(field));
-            container.appendChild(btn);
-        });
+        
+        // Add a note explaining how to filter
+        const helpText = document.createElement('small');
+        helpText.className = 'text-muted';
+        helpText.innerHTML = 'Click the <i class="bi bi-funnel"></i> icon next to any column header to filter';
+        container.appendChild(helpText);
     }
 
     function getFieldValueRange(field) {
@@ -678,6 +843,7 @@ console.log('Config:', window.DATASET_CONFIG);
             updateNoFiltersMessage();
         });
     }
+    
     // Add the formatValue helper function as a global function (place this outside any other function)
     function formatValue(value, field) {
         if (field.format === 'currency') {
@@ -688,6 +854,7 @@ console.log('Config:', window.DATASET_CONFIG);
             return value.toLocaleString();
         }
     }
+    
     function updateTableFilters(redraw = true) {
         $.fn.dataTable.ext.search = [];
 
@@ -770,6 +937,24 @@ console.log('Config:', window.DATASET_CONFIG);
 function renderActiveFilters() {
     const container = document.getElementById('active-filters');
     container.innerHTML = '';
+    
+    // Update filter buttons in column headers to show which are active
+    if (state.table) {
+        state.table.columns().every(function(index) {
+            const column = this;
+            const headerCell = $(column.header());
+            const filterBtn = headerCell.find('.column-filter-btn');
+            const fieldKey = config.fields[index]?.key;
+            
+            if (fieldKey && filterBtn.length) {
+                if (state.filters[fieldKey]) {
+                    filterBtn.addClass('active');
+                } else {
+                    filterBtn.removeClass('active');
+                }
+            }
+        });
+    }
 
     let hasFilters = false;
     
@@ -982,6 +1167,17 @@ function updateTableFilters(redraw = true) {
         if (noFiltersMsg) {
             noFiltersMsg.style.display = hasActiveFilters ? 'none' : 'block';
         }
+        
+        // Update the card header to indicate active filters
+        const filterHeader = document.querySelector('.card-header h5 i.bi-funnel');
+        if (filterHeader) {
+            const parentElement = filterHeader.parentElement;
+            if (hasActiveFilters) {
+                parentElement.innerHTML = '<i class="bi bi-funnel-fill me-2"></i>Active Filters';
+            } else {
+                parentElement.innerHTML = '<i class="bi bi-funnel me-2"></i>Filters';
+            }
+        }
     }
 
     function clearFilters() {
@@ -1034,7 +1230,7 @@ function updateTableFilters(redraw = true) {
                     }
                     
                     if (stat.format === 'currency') {
-                        formattedValue = `${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+                        formattedValue = `$${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
                     } else {
                         formattedValue = value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
                     }
@@ -1052,7 +1248,7 @@ function updateTableFilters(redraw = true) {
                     }
                     
                     if (stat.format === 'currency') {
-                        formattedValue = `${value.toLocaleString()}`;
+                        formattedValue = `$${value.toLocaleString()}`;
                     } else {
                         formattedValue = value.toLocaleString();
                     }
@@ -1070,7 +1266,7 @@ function updateTableFilters(redraw = true) {
                     }
                     
                     if (stat.format === 'currency') {
-                        formattedValue = `${value.toLocaleString()}`;
+                        formattedValue = `$${value.toLocaleString()}`;
                     } else {
                         formattedValue = value.toLocaleString();
                     }
@@ -1088,7 +1284,7 @@ function updateTableFilters(redraw = true) {
                     }
                     
                     if (stat.format === 'currency') {
-                        formattedValue = `${value.toLocaleString()}`;
+                        formattedValue = `$${value.toLocaleString()}`;
                     } else {
                         formattedValue = value.toLocaleString();
                     }

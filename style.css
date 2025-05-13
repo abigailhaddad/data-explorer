@@ -118,7 +118,7 @@
 }
 
 .table th {
-    padding: 0.75rem;
+    padding: 0.75rem 38px 0.75rem 0.75rem; /* Increased right padding for filter button */
     border-bottom: 2px solid #dee2e6;
     position: relative;
 }
@@ -160,33 +160,39 @@
 .column-filter-btn {
     background: none;
     border: none;
-    padding: 4px 6px;
+    padding: 4px;
     border-radius: 4px;
     transition: all 0.2s ease;
     cursor: pointer;
-    color: rgba(255, 255, 255, 0.8);
-    margin-left: 8px;
+    color: rgba(var(--bs-primary-rgb), 0.6);
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    position: absolute;
+    right: 16px; /* Move further right to avoid sort arrows */
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    z-index: 5; /* Make sure it's above other elements */
 }
 
 .column-filter-btn i {
-    opacity: 0.6;
-    font-size: 12px;
+    opacity: 0.7;
+    font-size: 14px;
 }
 
 .column-filter-btn:hover {
-    background-color: rgba(255, 255, 255, 0.15);
-    color: white;
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
+    color: var(--bs-primary);
 }
 
 .column-filter-btn:hover i {
-    opacity: 0.9;
+    opacity: 1;
 }
 
 .column-filter-btn.active {
-    background-color: var(--accent);
+    background-color: var(--bs-primary);
     color: white;
 }
 
@@ -195,47 +201,90 @@
 }
 
 .column-filter-btn.active:hover {
-    background-color: var(--accent);
+    background-color: var(--bs-primary);
     filter: brightness(110%);
 }
 
-/* Make sure column headers are properly aligned */
-.table th {
-    vertical-align: middle;
-    white-space: nowrap;
-    position: relative;
+/* Active filters container styling */
+.active-filters-container {
+    min-height: 80px;
 }
 
-.header-content {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    min-height: 30px;
+/* DataTables ColVis button dropdown styling - with !important flags to override default DataTables styling */
+div.dt-button-collection {
+    width: auto !important;
+    padding: 8px !important;
 }
 
-.header-text {
-    flex: 1;
-    min-width: 0;
+/* RESET ALL BUTTONS FIRST - Most aggressive override */
+div.dt-button-collection button,
+div.dt-button-collection button.dt-button,
+div.dt-button-collection div.dt-button,
+div.dt-button-collection div button,
+button.dt-button:not(.active),
+div.dt-button:not(.active),
+a.dt-button:not(.active) {
+    background: white !important;
+    background-image: none !important;
+    background-color: white !important;
+    color: #333 !important;
+    border: none !important;
+    box-shadow: none !important;
+    text-align: left !important;
+    width: 100% !important;
+    padding: 8px 16px !important;
+    margin: 2px 0 !important;
+    border-radius: 4px !important;
+    font-weight: normal !important;
+    opacity: 1 !important;
 }
 
-/* Ensure buttons are visible */
-.column-filter-btn {
-    min-width: 24px;
-    min-height: 24px;
+/* Hover state for all buttons */
+div.dt-button-collection button:hover,
+div.dt-button-collection button.dt-button:hover,
+div.dt-button-collection div.dt-button:hover,
+div.dt-button-collection div button:hover,
+button.dt-button:not(.active):hover,
+div.dt-button:not(.active):hover,
+a.dt-button:not(.active):hover {
+    background: rgba(var(--bs-primary-rgb), 0.1) !important;
+    background-image: none !important;
+    background-color: rgba(var(--bs-primary-rgb), 0.1) !important;
+    color: var(--bs-primary) !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
 }
 
-/* Responsive adjustments for filter buttons */
-@media (max-width: 768px) {
-    .column-filter-btn {
-        padding: 2px 4px;
-        min-width: 20px;
-        min-height: 20px;
-    }
-    
-    .column-filter-btn i {
-        font-size: 10px;
-    }
+/* Active buttons ONLY (visible columns) */
+div.dt-button-collection button.active,
+div.dt-button-collection button.dt-button.active,
+div.dt-button-collection div.dt-button.active,
+div.dt-button-collection div button.active,
+button.dt-button.active,
+div.dt-button.active,
+a.dt-button.active {
+    background: var(--bs-primary) !important;
+    background-image: none !important;
+    background-color: var(--bs-primary) !important;
+    color: white !important;
+    font-weight: normal !important;
+    opacity: 1 !important;
+    box-shadow: none !important;
+}
+
+/* Hover state for active buttons */
+div.dt-button-collection button.active:hover,
+div.dt-button-collection button.dt-button.active:hover,
+div.dt-button-collection div.dt-button.active:hover,
+div.dt-button-collection div button.active:hover,
+button.dt-button.active:hover,
+div.dt-button.active:hover,
+a.dt-button.active:hover {
+    background: var(--bs-primary) !important;
+    background-image: none !important;
+    background-color: var(--bs-primary) !important;
+    filter: brightness(110%) !important;
+    box-shadow: none !important;
 }
 
 /* Range slider styling */
