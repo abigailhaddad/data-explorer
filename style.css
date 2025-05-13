@@ -3,10 +3,16 @@
     box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
     border: 1px solid rgba(0, 0, 0, 0.08);
     transition: box-shadow 0.2s ease-in-out;
+    margin-bottom: 1.5rem;
 }
 
 .card:hover {
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Card body padding adjustments */
+.card-body {
+    padding: 1.25rem;
 }
 
 /* Filter modal improvements */
@@ -112,15 +118,56 @@
 }
 
 /* Table styling improvements */
-.table td {
-    padding: 0.75rem;
-    border-top: 1px solid #dee2e6;
+.table {
+    margin-top: 0;
+    margin-bottom: 0; 
 }
 
-.table th {
-    padding: 0.75rem 38px 0.75rem 0.75rem; /* Increased right padding for filter button */
-    border-bottom: 2px solid #dee2e6;
+.table-responsive {
+    overflow-x: auto;
+    padding: 0;
+}
+
+.card > .card-body.table-responsive {
+    padding: 0;
+}
+
+/* Fix DataTables control layout spacing */
+.dataTables_wrapper .row:first-child {
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+    padding: 0 0.75rem;
+}
+
+.table thead th {
     position: relative;
+    font-weight: 600;
+    background-color: #f8f9fa;
+    border-top: none; /* Remove top border to avoid double border */
+    border-bottom: 2px solid #dee2e6;
+    padding: 0.75rem 2.5rem 0.75rem 0.75rem; /* Increased right padding for sort and filter buttons */
+    vertical-align: middle;
+}
+
+.table tbody td {
+    padding: 0.75rem;
+    border-top: 1px solid #dee2e6;
+    vertical-align: middle;
+}
+
+/* Style DataTables row hover state */
+.table tbody tr:hover {
+    background-color: rgba(var(--bs-primary-rgb), 0.03);
+}
+
+/* Fix DataTables controls spacing */
+.dataTables_wrapper .dt-buttons .dt-button {
+    margin: 0 0.25rem;
+}
+
+.dataTables_wrapper .dataTables_info, 
+.dataTables_wrapper .dataTables_paginate {
+    margin: 0;
 }
 
 /* Custom styles for badges in table */
@@ -156,11 +203,11 @@
     margin-bottom: 0;
 }
 
-/* Column header filter button styling */
+/* Column header filter button styling - Fixed positioning */
 .column-filter-btn {
     background: none;
     border: none;
-    padding: 4px;
+    padding: 0;
     border-radius: 4px;
     transition: all 0.2s ease;
     cursor: pointer;
@@ -169,17 +216,17 @@
     align-items: center;
     justify-content: center;
     position: absolute;
-    right: 16px; /* Move further right to avoid sort arrows */
+    right: 24px; /* Position to the left of sort buttons */
     top: 50%;
     transform: translateY(-50%);
-    width: 24px;
-    height: 24px;
-    z-index: 5; /* Make sure it's above other elements */
+    width: 16px;
+    height: 16px;
+    z-index: 5;
 }
 
 .column-filter-btn i {
     opacity: 0.7;
-    font-size: 14px;
+    font-size: 10px;
 }
 
 .column-filter-btn:hover {
@@ -205,15 +252,41 @@
     filter: brightness(110%);
 }
 
+/* Positioning for DataTables sort icons */
+table.dataTable thead .sorting::after,
+table.dataTable thead .sorting_asc::after,
+table.dataTable thead .sorting_desc::after,
+table.dataTable thead .sorting_asc_disabled::after,
+table.dataTable thead .sorting_desc_disabled::after {
+    right: 5px !important; /* Move sort indicator to the right */
+    opacity: 0.5;
+}
+
 /* Active filters container styling */
 .active-filters-container {
     min-height: 80px;
+    padding-bottom: 0.5rem;
 }
 
-/* DataTables ColVis button dropdown styling - with !important flags to override default DataTables styling */
+/* Override for DataTables header styling */
+table.dataTable thead > tr > th.sorting,
+table.dataTable thead > tr > th.sorting_asc,
+table.dataTable thead > tr > th.sorting_desc {
+    padding-right: 2.75rem; /* Make space for both filter and sort buttons */
+    white-space: nowrap; /* Prevents text wrapping under buttons */
+}
+
+/* DataTables ColVis button dropdown styling */
 div.dt-button-collection {
+    position: absolute !important; 
     width: auto !important;
     padding: 8px !important;
+    margin-top: 3px !important;
+    z-index: 1000 !important;
+    background: white !important;
+    border: 1px solid rgba(0,0,0,0.15) !important;
+    border-radius: 4px !important;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.175) !important;
 }
 
 /* RESET ALL BUTTONS FIRST - Most aggressive override */
@@ -360,4 +433,94 @@ a.dt-button.active:hover {
     color: var(--bs-primary);
     text-align: center;
     flex: 1;
+}
+
+/* Improve dataTables pagination styling */
+.dataTables_paginate .paginate_button {
+    border-radius: 4px !important;
+    border: none !important;
+    background: none !important;
+}
+
+.dataTables_paginate .paginate_button:hover {
+    background: rgba(var(--bs-primary-rgb), 0.1) !important;
+    border: none !important;
+}
+
+.dataTables_paginate .paginate_button.current {
+    background: var(--bs-primary) !important;
+    color: white !important;
+    border: none !important;
+}
+
+.dataTables_paginate .paginate_button.current:hover {
+    background: var(--bs-primary) !important;
+    filter: brightness(110%) !important;
+    color: white !important;
+    border: none !important;
+}
+
+/* Fix table toolbar spacing */
+.dataTables_wrapper {
+    padding: 0;
+}
+
+.dataTables_bottom {
+    padding: 0.75rem;
+    border-top: 1px solid #dee2e6;
+}
+
+.dataTables_length select {
+    min-width: 70px;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    border: 1px solid #ced4da;
+    background-color: #fff;
+}
+
+.dt-buttons {
+    margin: 0 !important;
+}
+
+.dt-button {
+    margin-right: 0.5rem !important;
+}
+
+/* Better empty table styling */
+.dataTables_empty {
+    padding: 2rem !important;
+    text-align: center !important;
+    color: #6c757d !important;
+    font-style: italic !important;
+}
+
+/* Additional layout adjustments */
+.container-fluid.py-4 {
+    padding-top: 1.5rem !important;
+    padding-bottom: 1.5rem !important;
+}
+
+/* Header controls styling */
+#dt-buttons-container .btn {
+    white-space: nowrap;
+}
+
+.dataTables_length {
+    margin-bottom: 0 !important;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+    .card {
+        margin-bottom: 1rem;
+    }
+    
+    .container-fluid.py-4 {
+        padding-left: 0.75rem !important;
+        padding-right: 0.75rem !important;
+    }
+    
+    .table thead th {
+        padding-right: 2.25rem;
+    }
 }

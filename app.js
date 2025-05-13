@@ -54,6 +54,20 @@ console.log('Config:', window.DATASET_CONFIG);
                 }
             }
         });
+
+        // Set column visibility state for future use
+        setTimeout(function() {
+            const collection = $('.dt-button-collection');
+            if (collection.length) {
+                collection.find('button').on('click', function() {
+                    // Short delay to allow DataTables to process the visibility change
+                    setTimeout(function() {
+                        // Update filter buttons in column headers
+                        updateColumnFilterButtons();
+                    }, 100);
+                });
+            }
+        }, 50);
     }
 
     function setPageTitle() {
@@ -124,7 +138,7 @@ console.log('Config:', window.DATASET_CONFIG);
             responsive: true,
             searchHighlight: true,
             fixedHeader: true,
-            dom: '<"dt-buttons"B><"d-flex justify-content-between align-items-center mb-3"l>tip',
+            dom: 'ti<"dataTables_bottom d-flex align-items-center"lp>',
             pageLength: 25,
             lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
             language: {
@@ -141,17 +155,27 @@ console.log('Config:', window.DATASET_CONFIG);
                 name: field.key,
                 className: field.filter ? 'has-filter' : ''
             })),
-            buttons: [
-                {
-                    extend: 'colvis',
-                    text: 'Show/Hide Columns',
-                    className: 'btn btn-sm btn-primary text-white',
-                    columns: ':not(.noVis)',
-                }
-            ],
+            buttons: [], // Buttons are now created manually in initComplete
             // Add custom filter icons to headers after initialization
             initComplete: function() {
+                // Add filter buttons to column headers
                 addFilterButtonsToColumnHeaders(this.api());
+                
+                // Move length selector to header
+                $('#dt-length-container').append($('.dataTables_length'));
+                
+                // Add show/hide columns button to header
+                const table = this.api();
+                
+                // Create proper DataTables show/hide columns button
+                new $.fn.dataTable.Buttons(table, {
+                    buttons: [{
+                        extend: 'colvis',
+                        text: 'Show/Hide Columns',
+                        className: 'btn btn-sm btn-outline-primary',
+                        columns: ':not(.noVis)'
+                    }]
+                }).container().appendTo('#dt-buttons-container');
             }
         });
         
@@ -260,7 +284,7 @@ console.log('Config:', window.DATASET_CONFIG);
     
     function setupColumnVisibilityEventHandlers() {
         // Add event handler for the column visibility button
-        $(document).on('click', '.dt-button.buttons-colvis', function() {
+        $(document).on('click', '.buttons-colvis', function() {
             // Update button states after the dropdown is shown
             setTimeout(updateColumnVisibilityButtonStates, 50);
         });
@@ -1067,6 +1091,26 @@ console.log('Config:', window.DATASET_CONFIG);
         return true;
     }
 
+    // Extract updateColumnFilterButtons as a standalone function
+    function updateColumnFilterButtons() {
+        if (state.table) {
+            state.table.columns().every(function(index) {
+                const column = this;
+                const headerCell = $(column.header());
+                const filterBtn = headerCell.find('.column-filter-btn');
+                const fieldKey = config.fields[index]?.key;
+                
+                if (fieldKey && filterBtn.length) {
+                    if (state.filters[fieldKey]) {
+                        filterBtn.addClass('active');
+                    } else {
+                        filterBtn.removeClass('active');
+                    }
+                }
+            });
+        }
+    }
+
     function renderActiveFilters() {
         const container = document.getElementById('active-filters');
         container.innerHTML = '';
@@ -1091,25 +1135,6 @@ console.log('Config:', window.DATASET_CONFIG);
         });
         
         return hasFilters;
-    }
-    
-    function updateColumnFilterButtons() {
-        if (state.table) {
-            state.table.columns().every(function(index) {
-                const column = this;
-                const headerCell = $(column.header());
-                const filterBtn = headerCell.find('.column-filter-btn');
-                const fieldKey = config.fields[index]?.key;
-                
-                if (fieldKey && filterBtn.length) {
-                    if (state.filters[fieldKey]) {
-                        filterBtn.addClass('active');
-                    } else {
-                        filterBtn.removeClass('active');
-                    }
-                }
-            });
-        }
     }
     
     function renderArrayFilterTags(container, key, filterValue, title) {
