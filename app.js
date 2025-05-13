@@ -172,7 +172,7 @@ console.log('Config:', window.DATASET_CONFIG);
                     buttons: [{
                         extend: 'colvis',
                         text: 'Show/Hide Columns',
-                        className: 'btn btn-sm btn-outline-primary',
+                        className: 'btn btn-sm btn-primary',
                         columns: ':not(.noVis)'
                     }]
                 }).container().appendTo('#dt-buttons-container');
@@ -1240,6 +1240,16 @@ console.log('Config:', window.DATASET_CONFIG);
         
         if (noFiltersMsg) {
             noFiltersMsg.style.display = hasActiveFilters ? 'none' : 'block';
+        }
+        
+        // Update the filter container class
+        const activeFiltersContainer = document.querySelector('.active-filters-container');
+        if (activeFiltersContainer) {
+            if (hasActiveFilters) {
+                activeFiltersContainer.classList.add('has-filters');
+            } else {
+                activeFiltersContainer.classList.remove('has-filters');
+            }
         }
         
         // Update the card header to indicate active filters
