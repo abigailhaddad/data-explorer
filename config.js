@@ -40,7 +40,8 @@ window.DATASET_CONFIG = {
             key: 'title',        
             title: 'Title',        
             filter: 'text', 
-            visible: true 
+            visible: true,
+            charLimit: 10 // Example with a different limit
         },
         {
             key: 'skills',
@@ -86,7 +87,8 @@ window.DATASET_CONFIG = {
             key: 'notes',        
             title: 'Notes',        
             filter: 'text', 
-            visible: false 
+            visible: false,
+            charLimit: 50 // Limit to 100 characters with mouseover expansion
         }
     ],
     

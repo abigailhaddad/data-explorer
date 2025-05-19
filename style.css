@@ -246,6 +246,28 @@
     transform: scale(1.05);
 }
 
+/* Character limited text with tooltip */
+.char-limited {
+    display: inline-block;
+    max-width: 100%;
+    white-space: normal;
+    word-wrap: break-word;
+    border-bottom: 1px dotted #ced4da;
+    padding-bottom: 1px;
+    cursor: help;
+}
+
+.char-limited:hover {
+    color: var(--bs-primary);
+    border-bottom-color: var(--bs-primary);
+}
+
+/* Add styles to ensure truncated text works properly with DataTables */
+table.dataTable td {
+    overflow: visible !important;  /* Allow tooltips to overflow */
+    white-space: normal !important; /* Wrap text naturally */
+}
+
 /* Text formatting utilities */
 .text-muted {
     color: #6c757d !important;
