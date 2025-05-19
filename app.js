@@ -176,6 +176,14 @@ console.log('Config:', window.DATASET_CONFIG);
                         columns: ':not(.noVis)'
                     }]
                 }).container().appendTo('#dt-buttons-container');
+                
+                // Initialize jQuery tooltips for character-limited cells
+                setupTooltips();
+                
+                // Re-setup tooltips on table redraw (filtering, sorting, etc.)
+                table.on('draw', function() {
+                    setupTooltips();
+                });
             }
         });
         
@@ -231,8 +239,25 @@ console.log('Config:', window.DATASET_CONFIG);
             return `<span class="badge ${cls}">${data}</span>`;
         }
         
+        // Handle character limit with mouseover expansion
+        if (field.charLimit && typeof data === 'string' && data.length > field.charLimit) {
+            const truncated = data.substring(0, field.charLimit) + '...';
+            // Using span with a data attribute to avoid HTML escaping issues in titles
+            return `<span class="char-limited" data-full-text="${escapeHtml(data)}">${truncated}</span>`;
+        }
+        
         // Default case - return the data as is
         return data;
+    }
+    
+    // Helper function to escape HTML for title attributes
+    function escapeHtml(text) {
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
     }
     
     function renderMultiLabelCell(data) {
@@ -310,6 +335,11 @@ console.log('Config:', window.DATASET_CONFIG);
             
             if (visible) { // Column is now visible
                 addFilterButtonToHeaderCell(headerCell, field);
+                
+                // Re-setup tooltips for newly visible columns
+                if (field.charLimit) {
+                    setTimeout(setupTooltips, 100);
+                }
             } else {
                 // Remove filter button when column is hidden
                 headerCell.find('.column-filter-btn').remove();
@@ -1490,6 +1520,20 @@ console.log('Config:', window.DATASET_CONFIG);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+    }
+    
+    // Function to set up tooltips using jQuery
+    function setupTooltips() {
+        // Use jQuery to find all character-limited cells and add proper title attributes
+        $('.char-limited').each(function() {
+            const $this = $(this);
+            const fullText = $this.attr('data-full-text');
+            
+            if (fullText) {
+                // Set the title attribute directly (jQuery handles the escaping)
+                $this.attr('title', fullText);
+            }
+        });
     }
 
     function setupEventListeners() {
