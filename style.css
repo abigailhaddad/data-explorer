@@ -248,23 +248,31 @@
 
 /* Character limited text with tooltip */
 .char-limited {
-    display: inline-block;
-    max-width: 100%;
-    white-space: normal;
-    word-wrap: break-word;
-    border-bottom: 1px dotted #ced4da;
     padding-bottom: 1px;
+    border-bottom: 1px dotted #ccc;
     cursor: help;
 }
 
-.char-limited:hover {
-    color: var(--bs-primary);
-    border-bottom-color: var(--bs-primary);
+/* Bootstrap tooltip customization */
+.tooltip {
+    opacity: 1 !important;
+    max-width: 300px !important;
+    z-index: 9999 !important;
 }
 
-/* Add styles to ensure truncated text works properly with DataTables */
+.tooltip-inner {
+    max-width: 300px !important;
+    padding: 8px 12px !important;
+    text-align: left !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+    font-size: 0.9rem !important;
+    line-height: 1.4 !important;
+    word-wrap: break-word !important;
+}
+
+/* Add styles to ensure cell text works properly with DataTables */
 table.dataTable td {
-    overflow: visible !important;  /* Allow tooltips to overflow */
+    overflow: visible !important;  /* Allow popups to overflow */
     white-space: normal !important; /* Wrap text naturally */
 }
 

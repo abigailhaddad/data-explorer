@@ -1,5 +1,6 @@
 console.log('App.js is loading...');
 console.log('Config:', window.DATASET_CONFIG);
+console.log('DEBUG MODE ON - any errors will be logged to console');
 (function () {
     const config = window.DATASET_CONFIG;
     const state = {
@@ -177,12 +178,20 @@ console.log('Config:', window.DATASET_CONFIG);
                     }]
                 }).container().appendTo('#dt-buttons-container');
                 
-                // Initialize jQuery tooltips for character-limited cells
-                setupTooltips();
+                // Initialize tooltips
+                setTimeout(setupTooltips, 200);
                 
-                // Re-setup tooltips on table redraw (filtering, sorting, etc.)
+                // Handle various events that require tooltip re-initialization
                 table.on('draw', function() {
-                    setupTooltips();
+                    setTimeout(setupTooltips, 200);
+                });
+                
+                table.on('column-visibility.dt', function() {
+                    setTimeout(setupTooltips, 200);
+                });
+                
+                table.on('page.dt', function() {
+                    setTimeout(setupTooltips, 200);
                 });
             }
         });
@@ -239,11 +248,20 @@ console.log('Config:', window.DATASET_CONFIG);
             return `<span class="badge ${cls}">${data}</span>`;
         }
         
-        // Handle character limit with mouseover expansion
+        // Handle character limit with data attributes for Bootstrap tooltips
         if (field.charLimit && typeof data === 'string' && data.length > field.charLimit) {
             const truncated = data.substring(0, field.charLimit) + '...';
-            // Using span with a data attribute to avoid HTML escaping issues in titles
-            return `<span class="char-limited" data-full-text="${escapeHtml(data)}">${truncated}</span>`;
+            
+            // Escape the text for the tooltip
+            const cleanData = String(data)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+                
+            // Use data attribute for Bootstrap tooltips
+            return `<span class="char-limited" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="false" title="${cleanData}">${truncated}</span>`;
         }
         
         // Default case - return the data as is
@@ -1522,18 +1540,36 @@ console.log('Config:', window.DATASET_CONFIG);
         URL.revokeObjectURL(url);
     }
     
-    // Function to set up tooltips using jQuery
+    // Function to set up click-to-expand for character-limited cells
+    // Initialize Bootstrap tooltips
     function setupTooltips() {
-        // Use jQuery to find all character-limited cells and add proper title attributes
-        $('.char-limited').each(function() {
-            const $this = $(this);
-            const fullText = $this.attr('data-full-text');
+        try {
+            // Find all tooltip elements
+            const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+            console.log('Found tooltip elements:', tooltipTriggerList.length);
             
-            if (fullText) {
-                // Set the title attribute directly (jQuery handles the escaping)
-                $this.attr('title', fullText);
-            }
-        });
+            // Initialize each tooltip
+            [...tooltipTriggerList].forEach(tooltipTriggerEl => {
+                try {
+                    // Dispose existing tooltip if any
+                    const existingTooltip = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
+                    if (existingTooltip) {
+                        existingTooltip.dispose();
+                    }
+                    
+                    // Create new tooltip
+                    new bootstrap.Tooltip(tooltipTriggerEl, {
+                        boundary: document.body,
+                        trigger: 'hover focus',
+                        container: 'body'
+                    });
+                } catch (err) {
+                    console.error('Error initializing tooltip:', err);
+                }
+            });
+        } catch (err) {
+            console.error('Error in setupTooltips:', err);
+        }
     }
 
     function setupEventListeners() {
