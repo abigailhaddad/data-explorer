@@ -528,11 +528,11 @@ console.log('DEBUG MODE ON - any errors will be logged to console');
         return `
             <div class="mb-3">
                 <input type="text" class="form-control form-control-sm" id="multi-label-filter-search" 
-                       placeholder="Search skills...">
+                       placeholder="Search ${field.title.toLowerCase()}...">
             </div>
             <div class="multi-label-info mb-3">
                 <div class="alert alert-info">
-                    <small><i class="bi bi-info-circle me-2"></i>Select the skills you want to filter by. Results will show people who have <strong>any</strong> of the selected skills.</small>
+                    <small><i class="bi bi-info-circle me-2"></i>Select the ${field.title.toLowerCase()} you want to filter by. Results will show people who have <strong>any</strong> of the selected ${field.title.toLowerCase()}.</small>
                 </div>
             </div>
             <div class="select-options-container">
